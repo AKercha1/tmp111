@@ -1,1 +1,19 @@
-ewogICJpZCI6ICJwcm9qLWM1MzUxZTA3IiwKICAidGVuYW50X2lkIjogInRuLTdiZjAzYjVlIiwKICAibmFtZSI6ICJhYWEiLAogICJkZXNjcmlwdGlvbiI6ICJhYWEiLAogICJpbnN0cnVjdGlvbnMiOiAiIiwKICAiZ29hbCI6ICIiLAogICJ0b2RvcyI6IFtdLAogICJkZWFkbGluZSI6ICIyMDI2LTAzLTE1VDAwOjAwOjAwLjAwMDAwMDBcdTAwMkIwMDowMCIsCiAgIm1lZXRpbmdzIjogW10sCiAgInByaW9yaXR5IjogIm1lZGl1bSIsCiAgInZib3hfb3JnYW5pemF0aW9uX2lkIjogbnVsbCwKICAidmJveF9vcmdhbml6YXRpb25fbmFtZSI6IG51bGwsCiAgInByb2FjdGl2ZV9lbmFibGVkIjogdHJ1ZSwKICAiY3JlYXRlZF9hdCI6ICIyMDI2LTAzLTA4VDE1OjEwOjI5LjY5MTg3MzBcdTAwMkIwMDowMCIsCiAgInVwZGF0ZWRfYXQiOiAiMjAyNi0wMy0wOFQyMDowOToyOC42NDQwOTkwXHUwMDJCMDA6MDAiLAogICJjaGF0X2NvdW50IjogMiwKICAiYXJ0aWZhY3RfY291bnQiOiAxCn0=
+{
+  "id": "proj-1bac74ea",
+  "tenant_id": "tn-7bf03b5e",
+  "name": "aaa",
+  "description": "aaa",
+  "instructions": "",
+  "goal": "",
+  "todos": [],
+  "deadline": "2026-03-10T00:00:00.0000000\u002B00:00",
+  "meetings": [],
+  "priority": "medium",
+  "vbox_organization_id": null,
+  "vbox_organization_name": null,
+  "proactive_enabled": true,
+  "created_at": "2026-03-08T21:00:15.0243600\u002B00:00",
+  "updated_at": "2026-03-08T21:01:14.0529880\u002B00:00",
+  "chat_count": 1,
+  "artifact_count": 1
+}
