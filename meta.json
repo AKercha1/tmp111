@@ -5,15 +5,21 @@
   "description": "aaa",
   "instructions": "",
   "goal": "",
-  "todos": [],
-  "deadline": "2026-03-10T00:00:00.0000000\u002B00:00",
+  "todos": [
+    {
+      "id": "t-mmi8qeii",
+      "done": true,
+      "text": "Выбрать главного героя"
+    }
+  ],
+  "deadline": "2026-03-10T00:00:00.0000000+00:00",
   "meetings": [],
   "priority": "medium",
   "vbox_organization_id": null,
   "vbox_organization_name": null,
   "proactive_enabled": true,
-  "created_at": "2026-03-08T21:00:15.0243600\u002B00:00",
-  "updated_at": "2026-03-08T21:01:14.0529880\u002B00:00",
+  "created_at": "2026-03-08T21:00:15.0243600+00:00",
+  "updated_at": "2026-03-08T21:12:31.8411090+00:00",
   "chat_count": 1,
   "artifact_count": 1
 }
