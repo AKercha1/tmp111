@@ -1,15 +1,15 @@
 [
   {
-    "id": "art-7112005f",
-    "project_id": "proj-c5351e07",
+    "id": "art-2d368df6",
+    "project_id": "proj-4bc992ce",
     "user_id": null,
     "name": "ежик",
-    "filename": "art-7112005f.md",
+    "filename": "art-2d368df6.md",
     "type": "text",
     "size_bytes": 6895,
     "chat_id": null,
     "original_filename": "ежик.md",
-    "created_at": "2026-03-08T20:08:41.3961730+00:00",
+    "created_at": "2026-03-08T21:32:02.4128680+00:00",
     "github_path": "artifacts/ежик.md"
   }
 ]
