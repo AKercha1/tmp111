@@ -3,12 +3,13 @@
     "id": "art-91103d4f",
     "project_id": "proj-1bac74ea",
     "user_id": null,
-    "name": "\u0435\u0436\u0438\u043A",
+    "name": "ежик",
     "filename": "art-91103d4f.md",
     "type": "text",
     "size_bytes": 6895,
     "chat_id": null,
-    "original_filename": "\u0435\u0436\u0438\u043A.md",
-    "created_at": "2026-03-08T21:00:32.4436590\u002B00:00"
+    "original_filename": "ежик.md",
+    "created_at": "2026-03-08T21:00:32.4436590+00:00",
+    "github_path": "artifacts/ежик.md"
   }
 ]
