@@ -1,25 +1,19 @@
 {
-  "id": "proj-1bac74ea",
+  "id": "proj-c5351e07",
   "tenant_id": "tn-7bf03b5e",
   "name": "aaa",
   "description": "aaa",
   "instructions": "",
   "goal": "",
-  "todos": [
-    {
-      "id": "t-mmi8qeii",
-      "done": true,
-      "text": "Выбрать главного героя"
-    }
-  ],
-  "deadline": "2026-03-10T00:00:00.0000000+00:00",
+  "todos": [],
+  "deadline": "2026-03-15T00:00:00.0000000+00:00",
   "meetings": [],
   "priority": "medium",
-  "vbox_organization_id": null,
-  "vbox_organization_name": null,
+  "vbox_organization_id": "null",
+  "vbox_organization_name": "null",
   "proactive_enabled": true,
-  "created_at": "2026-03-08T21:00:15.0243600+00:00",
-  "updated_at": "2026-03-08T21:12:31.8411090+00:00",
-  "chat_count": 1,
+  "created_at": "2026-03-08T15:10:29.6918730+00:00",
+  "updated_at": "2026-03-08T20:54:23.3588070+00:00",
+  "chat_count": 2,
   "artifact_count": 1
 }
