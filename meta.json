@@ -1,19 +1,40 @@
 {
-  "id": "proj-c5351e07",
+  "id": "proj-1bac74ea",
   "tenant_id": "tn-7bf03b5e",
   "name": "aaa",
   "description": "aaa",
   "instructions": "",
   "goal": "",
-  "todos": [],
-  "deadline": "2026-03-15T00:00:00.0000000+00:00",
+  "todos": [
+    {
+      "id": "t-mmi8qeii",
+      "done": true,
+      "text": "Выбрать главного героя"
+    },
+    {
+      "id": "t-azure-scan",
+      "done": false,
+      "text": "Scan Azure environment for cost optimization"
+    },
+    {
+      "id": "t-security-audit",
+      "done": false,
+      "text": "Audit security risks and compliance gaps"
+    },
+    {
+      "id": "t-governance-plan",
+      "done": false,
+      "text": "Establish tag governance and RBAC strategy"
+    }
+  ],
+  "deadline": "2026-03-10T00:00:00.0000000+00:00",
   "meetings": [],
   "priority": "medium",
-  "vbox_organization_id": "null",
-  "vbox_organization_name": "null",
+  "vbox_organization_id": null,
+  "vbox_organization_name": null,
   "proactive_enabled": true,
-  "created_at": "2026-03-08T15:10:29.6918730+00:00",
-  "updated_at": "2026-03-09T15:16:58.0548800+00:00",
-  "chat_count": 2,
+  "created_at": "2026-03-08T21:00:15.0243600+00:00",
+  "updated_at": "2026-03-09T12:47:11.6005840+00:00",
+  "chat_count": 1,
   "artifact_count": 1
 }
