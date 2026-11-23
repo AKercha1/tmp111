@@ -1,0 +1,2566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapid AI Prototyping — Our Approach</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a23;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, #74b9ff, #0984e3);
+    z-index: 200; transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 10px rgba(116,185,255,0.5);
+  }
+  .slide-corner {
+    position: fixed; top: 20px; right: 28px;
+    font-size: 13px; color: #2a2a4a; font-weight: 600; z-index: 150;
+  }
+  .back-fork-btn {
+    position: fixed; top: 14px; left: 28px;
+    background: none; border: 1px solid #2a2a4a; color: #3a3a5a;
+    padding: 5px 14px; border-radius: 6px; cursor: pointer; font-size: 11px;
+    transition: all 0.2s; z-index: 150; display: none;
+  }
+  .back-fork-btn:hover { background: #1a1a3a; color: #fff; border-color: #4a4a6a; }
+
+  .slide {
+    display: none; min-height: 100vh; padding: 44px 56px 58px;
+    position: relative; opacity: 0;
+  }
+  .slide.active {
+    display: flex; flex-direction: column; height:100vh; overflow:hidden;
+    animation: slideEnter 0.5s cubic-bezier(0.4,0,0.2,1) forwards;
+  }
+  .slide.exit-left  { display:flex;flex-direction:column;height:100vh;overflow:hidden;animation:exitLeft 0.35s ease forwards; }
+  .slide.exit-right { display:flex;flex-direction:column;height:100vh;overflow:hidden;animation:exitRight 0.35s ease forwards; }
+  @keyframes slideEnter { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes exitLeft   { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(-40px)} }
+  @keyframes exitRight  { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(40px)} }
+
+  .anim { opacity:0; transform:translateY(18px); transition:opacity 0.45s ease, transform 0.45s ease; }
+  .anim.visible { opacity:1; transform:translateY(0); }
+
+  .nav-bar {
+    position:fixed; bottom:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:center; gap:12px; padding:14px;
+    background:linear-gradient(transparent, rgba(10,10,35,0.97)); z-index:100;
+  }
+  .nav-dot {
+    width:10px; height:10px; border-radius:50%; background:#2a2a4a;
+    cursor:pointer; transition:all 0.3s; border:none;
+  }
+  .nav-dot.active { background:#74b9ff; transform:scale(1.4); box-shadow:0 0 12px rgba(116,185,255,0.4); }
+  .nav-dot.mgr.active { background:#00b894; box-shadow:0 0 12px rgba(0,184,148,0.4); }
+  .nav-dot.imp.active { background:#fdcb6e; box-shadow:0 0 12px rgba(253,203,110,0.4); }
+  .nav-dot.fork-dot.active { background:#a29bfe; box-shadow:0 0 12px rgba(162,155,254,0.4); }
+  .nav-dot:hover { background:#5a5a7a; }
+  .nav-arrow {
+    background:none; border:1px solid #2a2a4a; color:#6c6c80;
+    padding:6px 14px; border-radius:6px; cursor:pointer; font-size:16px; transition:all 0.2s;
+  }
+  .nav-arrow:hover { background:#1a1a3a; color:#fff; }
+  .slide-num { font-size:12px; color:#3a3a5a; min-width:50px; text-align:center; }
+
+  .slide-title { font-size:34px; font-weight:700; margin-bottom:5px; letter-spacing:-0.8px; }
+  .slide-subtitle { font-size:16px; color:#6c6c80; margin-bottom:18px; font-weight:400; }
+  .accent { color:#74b9ff; }
+  .accent-green { color:#00b894; }
+  .accent-red { color:#e17055; }
+  .accent-purple { color:#a29bfe; }
+  .accent-yellow { color:#fdcb6e; }
+  .accent-pink { color:#fd79a8; }
+  .accent-teal { color:#81ecec; }
+
+  @keyframes glowPulse {
+    0%,100% { text-shadow:0 0 8px currentColor; }
+    50%     { text-shadow:0 0 24px currentColor, 0 0 48px currentColor; }
+  }
+  .glow { animation: glowPulse 2s ease-in-out infinite; }
+
+  .particles { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+  .particle {
+    position:absolute; width:2px; height:2px; background:#74b9ff;
+    border-radius:50%; opacity:0; animation:particleFloat linear infinite;
+  }
+  @keyframes particleFloat {
+    0%  {opacity:0;transform:translateY(0) scale(1)}
+    10% {opacity:0.3} 90%{opacity:0.1}
+    100%{opacity:0;transform:translateY(-100vh) scale(0.5)}
+  }
+  .key-hint { position:fixed; bottom:46px; right:24px; font-size:11px; color:#2a2a4a; }
+
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; }
+  .section-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; }
+
+  @keyframes shimmer {
+    0%,100%{transform:translateX(-100%)} 50%{transform:translateX(100%)}
+  }
+
+  .card {
+    background:#12122a; border-radius:12px; padding:16px 20px;
+    transition:all 0.3s; border:1px solid #2a2a4a;
+  }
+
+  .flow-step {
+    display:flex; align-items:flex-start; gap:12px; padding:9px 14px;
+    background:#0e0e20; border-radius:8px; border:1px solid #2a2a4a;
+    transition:all 0.3s; font-size:13px;
+  }
+  .flow-step:hover { transform:translateX(4px); }
+  .step-num {
+    width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; flex-shrink:0; margin-top:1px;
+  }
+
+  .tag {
+    display:inline-block; padding:2px 8px; border-radius:4px;
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+  }
+
+  .fork-card {
+    background:#12122a; border-radius:16px; padding:24px 26px;
+    cursor:pointer; transition:all 0.3s; border:2px solid;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .fork-card:hover { transform:translateY(-5px); }
+
+  .checklist-item {
+    display:flex; gap:10px; align-items:flex-start; font-size:12px;
+    padding:6px 0; border-bottom:1px solid #1a1a3a; line-height:1.5;
+  }
+  .checklist-item:last-child { border-bottom:none; }
+
+  .bad-item { display:flex; gap:8px; align-items:flex-start; font-size:12px; padding:5px 0; color:#a0a0b8; }
+  .good-item { display:flex; gap:8px; align-items:flex-start; font-size:12px; padding:5px 0; color:#a0a0b8; }
+
+  table.rtable { width:100%; border-collapse:collapse; font-size:13px; }
+  table.rtable th { color:#6c6c80; font-weight:700; text-align:left; padding:8px 10px; border-bottom:1px solid #2a2a4a; font-size:11px; text-transform:uppercase; }
+  table.rtable td { padding:8px 10px; border-bottom:1px solid #1a1a3a; color:#a0a0b8; vertical-align:top; line-height:1.5; }
+  table.rtable tr:last-child td { border-bottom:none; }
+  table.rtable tr:hover td { background:#0e0e20; }
+  table.rtable td:first-child { color:#e0e0f0; font-weight:600; }
+
+  .callout {
+    border-radius:10px; padding:12px 16px; position:relative; overflow:hidden; margin-top:12px;
+  }
+  .callout-shimmer {
+    position:absolute; inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.03),transparent);
+    animation:shimmer 4s ease-in-out infinite;
+  }
+  .pattern-card {
+    background:#0e0e20; border-radius:10px; padding:12px 14px;
+    border:1px solid #2a2a4a; transition:all 0.3s;
+  }
+  .pattern-card:hover { transform:translateX(5px); }
+
+  /* ── Slide 2 ── */
+  .myth-row {
+    background:#110b0b; border:1px solid #e1705528; border-radius:8px;
+    padding:9px 12px; display:flex; align-items:center; gap:9px;
+    position:relative; overflow:hidden;
+  }
+  .myth-row .mxline {
+    position:absolute; top:50%; left:0; right:0; height:1.5px;
+    background:linear-gradient(90deg, transparent 5%, #e17055aa 40%, #e17055aa 60%, transparent 95%);
+    transform:translateY(-50%); pointer-events:none;
+  }
+  .reality-bar-track {
+    height:10px; background:#12122a; border-radius:5px; overflow:hidden; margin-top:5px;
+  }
+  .reality-bar-fill {
+    height:100%; border-radius:5px;
+  }
+  .stat-pill {
+    flex:1; text-align:center; padding:10px 8px;
+  }
+  .stat-pill .stat-val {
+    font-size:20px; font-weight:800; line-height:1.2; margin-bottom:4px;
+  }
+  .stat-pill .stat-label {
+    font-size:10px; color:#6c6c80; line-height:1.3;
+  }
+
+  /* ── Value card hover-expand system ── */
+  .val-wrap { position:relative; max-width:920px; width:100%; }
+  .val-panel {
+    position:absolute; bottom:calc(100% + 10px); left:0; right:0;
+    background:#0c0c22; border:1px solid #2e2e50; border-radius:16px;
+    pointer-events:none; opacity:0; transform:translateY(10px);
+    transition:opacity 0.28s cubic-bezier(0.4,0,0.2,1), transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    z-index:30; box-shadow:0 -8px 48px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .val-panel.val-open { opacity:1; transform:translateY(0); pointer-events:auto; }
+  .val-pane { display:none; padding:18px 22px; }
+  .val-pane.val-active { display:block; }
+  .val-card-h {
+    background:#12122a; border-radius:12px; padding:16px 14px 12px;
+    text-align:center; cursor:default;
+    transition:transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .val-card-h:hover { transform:translateY(-5px); }
+  .val-card-h.hov-process { border:1px solid #74b9ff50; }
+  .val-card-h.hov-process:hover { border-color:#74b9ff; box-shadow:0 8px 32px rgba(116,185,255,0.18); }
+  .val-card-h.hov-translate { border:1px solid #00b89450; }
+  .val-card-h.hov-translate:hover { border-color:#00b894; box-shadow:0 8px 32px rgba(0,184,148,0.18); }
+  .val-card-h.hov-ai { border:1px solid #fdcb6e50; }
+  .val-card-h.hov-ai:hover { border-color:#fdcb6e; box-shadow:0 8px 32px rgba(253,203,110,0.18); }
+  .val-card-h.hov-azure { border:1px solid #a29bfe50; }
+  .val-card-h.hov-azure:hover { border-color:#a29bfe; box-shadow:0 8px 32px rgba(162,155,254,0.18); }
+  .val-card-h .card-hint { font-size:9px; color:#1e1e3a; margin-top:5px; letter-spacing:0.5px; transition:color 0.2s; }
+  .val-card-h:hover .card-hint { color:#4a4a6a; }
+  .vp-row { display:flex; gap:8px; align-items:center; background:#12122a; border-radius:7px; padding:7px 10px; }
+  .vp-svc { font-size:10px; color:#a29bfe; white-space:nowrap; }
+  .warn-row { background:#12122a; border-left:3px solid #e17055; border-radius:0 7px 7px 0; padding:6px 10px; font-size:11px; color:#a0a0b8; line-height:1.4; }
+  .phase-box { flex:1; background:#12122a; border:1px solid; border-radius:8px; padding:9px 8px; text-align:center; }
+  .vp-aside { width:188px; background:#12122a; border-radius:10px; padding:13px 14px; }
+  .vp-aside-title { font-size:10px; font-weight:700; color:#6c6c80; text-transform:uppercase; letter-spacing:1px; margin-bottom:7px; }
+</style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+<div class="progress-bar" id="progressBar" style="width:9.1%"></div>
+<div class="slide-corner" id="slideCorner">01 / 11</div>
+<button class="back-fork-btn" id="backForkBtn" onclick="backToFork()">&#x21A9; Change guide</button>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SLIDE 1 — TITLE                            -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide active" data-slide="1">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+    <div class="anim" data-delay="0" style="font-size:52px;margin-bottom:12px;">&#x1F3AF;</div>
+    <div class="anim slide-title" data-delay="1" style="font-size:44px;">
+      Rapid AI <span class="accent">Prototyping</span>
+    </div>
+    <div class="anim" data-delay="2" style="font-size:16px;color:#6c6c80;margin-bottom:10px;max-width:720px;line-height:1.6;">
+      A prototype is a managed way to show a working demo, clarify real needs, support the customer&rsquo;s internal selling, estimate ROI, and define what to build next.
+    </div>
+    <div class="anim" data-delay="2" style="font-size:13px;color:#3a3a5a;margin-bottom:24px;max-width:680px;">
+      Not production delivery. Not a coding sprint. Not generic experimentation.
+    </div>
+
+    <div class="anim val-wrap" data-delay="3">
+
+      <!-- ── Hover detail panel (floats above cards) ── -->
+      <div class="val-panel" id="valPanel" onmouseenter="clearTimeout(window._valHide)" onmouseleave="hideValPane()">
+
+        <!-- PROCESS -->
+        <div class="val-pane" id="vp-process">
+          <div style="display:flex;gap:18px;align-items:flex-start;">
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;color:#74b9ff;margin-bottom:10px;letter-spacing:-0.2px;">Four stages — same discipline, every engagement</div>
+              <div style="display:flex;align-items:stretch;gap:0;">
+                <div class="phase-box" style="border-color:#74b9ff30;border-radius:8px 0 0 8px;">
+                  <div style="font-size:18px;margin-bottom:4px;">&#x1F4DD;</div>
+                  <div style="font-size:10px;font-weight:700;color:#74b9ff;">Brief</div>
+                  <div style="font-size:9px;color:#6c6c80;margin-top:3px;line-height:1.4;">Written problem&nbsp;+ data&nbsp;+ scope confirmed</div>
+                </div>
+                <div style="display:flex;align-items:center;padding:0 5px;color:#2a2a4a;font-size:13px;">&#x2192;</div>
+                <div class="phase-box" style="border-color:#74b9ff30;border-radius:0;">
+                  <div style="font-size:18px;margin-bottom:4px;">&#x1F50D;</div>
+                  <div style="font-size:10px;font-weight:700;color:#74b9ff;">Clarify</div>
+                  <div style="font-size:9px;color:#6c6c80;margin-top:3px;line-height:1.4;">Data access confirmed, questions answered</div>
+                </div>
+                <div style="display:flex;align-items:center;padding:0 5px;color:#2a2a4a;font-size:13px;">&#x2192;</div>
+                <div class="phase-box" style="border-color:#74b9ff30;border-radius:0;">
+                  <div style="font-size:18px;margin-bottom:4px;">&#x1F528;</div>
+                  <div style="font-size:10px;font-weight:700;color:#74b9ff;">Build</div>
+                  <div style="font-size:9px;color:#6c6c80;margin-top:3px;line-height:1.4;">Data first, core logic second, UI last</div>
+                </div>
+                <div style="display:flex;align-items:center;padding:0 5px;color:#2a2a4a;font-size:13px;">&#x2192;</div>
+                <div class="phase-box" style="border-color:#74b9ff30;border-radius:0 8px 8px 0;">
+                  <div style="font-size:18px;margin-bottom:4px;">&#x2705;</div>
+                  <div style="font-size:10px;font-weight:700;color:#74b9ff;">Validate</div>
+                  <div style="font-size:9px;color:#6c6c80;margin-top:3px;line-height:1.4;">End-to-end on real data, manager confirms</div>
+                </div>
+              </div>
+            </div>
+            <div class="vp-aside" style="border:1px solid #74b9ff25;">
+              <div class="vp-aside-title">Why it works</div>
+              <div style="font-size:11.5px;color:#a0a0b8;line-height:1.6;">Most failures trace back to one skipped stage &mdash; usually <strong style="color:#74b9ff;">clarification before build</strong>. The discipline is the differentiator, not the code.</div>
+              <div style="margin-top:9px;background:#0a0a1e;border-radius:6px;padding:8px 10px;font-size:11px;color:#74b9ff;font-style:italic;line-height:1.5;">"A good brief takes an hour. It saves days of rework."</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRANSLATION -->
+        <div class="val-pane" id="vp-translate">
+          <div style="display:flex;gap:18px;align-items:flex-start;">
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;color:#00b894;margin-bottom:10px;letter-spacing:-0.2px;">What translation actually looks like</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div>
+                  <div style="font-size:9px;font-weight:700;color:#e17055;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">&#x274C; What customer said</div>
+                  <div style="background:#12122a;border:1px solid #e1705530;border-radius:8px;padding:10px 12px;font-size:12px;color:#a0a0b8;font-style:italic;line-height:1.6;">"Build me a document chatbot for our internal policies."</div>
+                </div>
+                <div>
+                  <div style="font-size:9px;font-weight:700;color:#00b894;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">&#x2714; What gets built from</div>
+                  <div style="background:#12122a;border:1px solid #00b89430;border-radius:8px;padding:10px 12px;font-size:11px;color:#a0a0b8;line-height:1.65;">Python Flask app &middot; POST /ask endpoint &middot; queries Azure AI Search <em>'contoso-docs'</em> hybrid search &middot; top 3 results &rarr; GPT-4o &middot; returns JSON</div>
+                </div>
+              </div>
+            </div>
+            <div class="vp-aside" style="border:1px solid #00b89425;">
+              <div class="vp-aside-title">The gap to close</div>
+              <div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:#a0a0b8;">
+                <div style="display:flex;gap:7px;"><span style="color:#00b894;">&#x2192;</span>Business question</div>
+                <div style="display:flex;gap:7px;"><span style="color:#00b894;">&#x2192;</span>Demo scenario, step by step</div>
+                <div style="display:flex;gap:7px;"><span style="color:#00b894;">&#x2192;</span>Data description &amp; access</div>
+                <div style="display:flex;gap:7px;"><span style="color:#00b894;">&#x2192;</span>Success criteria</div>
+                <div style="display:flex;gap:7px;"><span style="color:#00b894;">&#x2192;</span>Out-of-scope boundary</div>
+              </div>
+              <div style="margin-top:9px;font-size:11px;color:#00b894;font-style:italic;border-top:1px solid #00b89420;padding-top:8px;line-height:1.5;">This is the manager's job. The hardest part is not the code.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI -->
+        <div class="val-pane" id="vp-ai">
+          <div style="display:flex;gap:18px;align-items:flex-start;">
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;color:#fdcb6e;margin-bottom:10px;letter-spacing:-0.2px;">How AI-assisted coding actually works</div>
+              <div style="display:flex;gap:0;align-items:stretch;">
+                <div class="phase-box" style="border-color:#fdcb6e30;border-radius:8px 0 0 8px;">
+                  <div style="font-size:18px;margin-bottom:4px;">&#x270D;&#xFE0F;</div>
+                  <div style="font-size:10px;font-weight:700;color:#fdcb6e;">Write the Brief</div>
+                  <div style="font-size:9px;color:#6c6c80;margin-top:3px;line-height:1.4;">Specific: data structure, services, exact demo flow</div>
+                </div>
+                <div style="display:flex;align-items:center;padding:0 5px;color:#2a2a4a;font-size:13px;">&#x2192;</div>
+                <div class="phase-box" style="border-color:#fdcb6e30;border-radius:0;">
+                  <div style="font-size:18px;margin-bottom:4px;">&#x26A1;</div>
+                  <div style="font-size:10px;font-weight:700;color:#fdcb6e;">AI Generates</div>
+                  <div style="font-size:9px;color:#6c6c80;margin-top:3px;line-height:1.4;">Architecture, code, sequence, risk identification</div>
+                </div>
+                <div style="display:flex;align-items:center;padding:0 5px;color:#2a2a4a;font-size:13px;">&#x2192;</div>
+                <div class="phase-box" style="border-color:#fdcb6e30;border-radius:0 8px 8px 0;">
+                  <div style="font-size:18px;margin-bottom:4px;">&#x1F441;&#xFE0F;</div>
+                  <div style="font-size:10px;font-weight:700;color:#fdcb6e;">Human Reviews</div>
+                  <div style="font-size:9px;color:#6c6c80;margin-top:3px;line-height:1.4;">Correctness, credentials, scope, real data test</div>
+                </div>
+              </div>
+            </div>
+            <div class="vp-aside" style="border:1px solid #fdcb6e25;">
+              <div class="vp-aside-title">Stay alert for</div>
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <div class="warn-row">AI adds features you didn&rsquo;t ask for</div>
+                <div class="warn-row">Credentials hardcoded in generated code</div>
+                <div class="warn-row">Tested on sample data, not real data</div>
+                <div class="warn-row" style="border-left-color:#fdcb6e;color:#fdcb6e;font-weight:700;">You are accountable for what it produces</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AZURE -->
+        <div class="val-pane" id="vp-azure">
+          <div style="display:flex;gap:18px;align-items:flex-start;">
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;color:#a29bfe;margin-bottom:10px;letter-spacing:-0.2px;">Six recurring patterns &mdash; each with a known service stack</div>
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <div class="vp-row" style="border:1px solid #a29bfe20;">
+                  <span style="font-size:14px;">&#x1F50D;</span>
+                  <div style="flex:1;font-size:12px;font-weight:600;color:#e0e0f0;">Q&amp;A over documents (RAG)</div>
+                  <div class="vp-svc">Azure AI Search + OpenAI</div>
+                </div>
+                <div class="vp-row" style="border:1px solid #a29bfe20;">
+                  <span style="font-size:14px;">&#x1F4CA;</span>
+                  <div style="flex:1;font-size:12px;font-weight:600;color:#e0e0f0;">Data analysis &amp; insights</div>
+                  <div class="vp-svc">Azure OpenAI + PostgreSQL (pgvector, trigram)</div>
+                </div>
+                <div class="vp-row" style="border:1px solid #a29bfe20;">
+                  <span style="font-size:14px;">&#x1F4C4;</span>
+                  <div style="flex:1;font-size:12px;font-weight:600;color:#e0e0f0;">OCR / Document extraction</div>
+                  <div class="vp-svc">Azure Doc Intelligence + OpenAI</div>
+                </div>
+                <div class="vp-row" style="border:1px solid #a29bfe20;">
+                  <span style="font-size:14px;">&#x2699;&#xFE0F;</span>
+                  <div style="flex:1;font-size:12px;font-weight:600;color:#e0e0f0;">Process automation</div>
+                  <div class="vp-svc">OpenAI + AKS</div>
+                </div>
+                <div class="vp-row" style="border:1px solid #a29bfe20;">
+                  <span style="font-size:14px;">&#x1F4AC;</span>
+                  <div style="flex:1;font-size:12px;font-weight:600;color:#e0e0f0;">Conversational interface</div>
+                  <div class="vp-svc">OpenAI + AI Search + custom layer (AKS)</div>
+                </div>
+                <div class="vp-row" style="border:1px solid #a29bfe20;">
+                  <span style="font-size:14px;">&#x1F916;</span>
+                  <div style="flex:1;font-size:12px;font-weight:600;color:#e0e0f0;">Multi-step / agent workflow</div>
+                  <div class="vp-svc">Claude Code CLI + custom layer on AKS</div>
+                </div>
+              </div>
+            </div>
+            <div class="vp-aside" style="border:1px solid #a29bfe25;">
+              <div class="vp-aside-title">Why it matters</div>
+              <div style="font-size:11.5px;color:#a0a0b8;line-height:1.6;">Knowing which pattern applies determines what to build, which services to use, and what the main risks are &mdash; <strong style="color:#a29bfe;">before any code is written</strong>.</div>
+              <div style="margin-top:9px;font-size:11px;color:#a29bfe;font-style:italic;border-top:1px solid #a29bfe20;padding-top:8px;line-height:1.5;">No universal template covers all six. Knowing the pattern is the template.</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /val-panel -->
+
+      <!-- ── Cards ── -->
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#4a4a6a;margin-bottom:12px;">Goals of this presentation</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+        <div class="val-card-h hov-process" onmouseenter="showValPane('process')" onmouseleave="hideValPane()">
+          <div style="font-size:30px;margin-bottom:9px;">&#x1F504;</div>
+          <div style="font-size:14px;font-weight:700;color:#74b9ff;">Establish a Repeatable Process</div>
+          <div style="font-size:12px;color:#6c6c80;margin-top:5px;line-height:1.5;">From business case to working demo &mdash; same stages every time</div>
+          <div class="card-hint">&#x25B2; hover to expand</div>
+        </div>
+        <div class="val-card-h hov-translate" onmouseenter="showValPane('translate')" onmouseleave="hideValPane()">
+          <div style="font-size:30px;margin-bottom:9px;">&#x1F4A1;</div>
+          <div style="font-size:14px;font-weight:700;color:#00b894;">Explain Business Translation</div>
+          <div style="font-size:12px;color:#6c6c80;margin-top:5px;line-height:1.5;">Turn vague customer goals into implementable requirements</div>
+          <div class="card-hint">&#x25B2; hover to expand</div>
+        </div>
+        <div class="val-card-h hov-ai" onmouseenter="showValPane('ai')" onmouseleave="hideValPane()">
+          <div style="font-size:30px;margin-bottom:9px;">&#x26A1;</div>
+          <div style="font-size:14px;font-weight:700;color:#fdcb6e;">Guide AI-Assisted Execution</div>
+          <div style="font-size:12px;color:#6c6c80;margin-top:5px;line-height:1.5;">Claude Code as accelerator &mdash; with human review at every step</div>
+          <div class="card-hint">&#x25B2; hover to expand</div>
+        </div>
+        <div class="val-card-h hov-azure" onmouseenter="showValPane('azure')" onmouseleave="hideValPane()">
+          <div style="font-size:30px;margin-bottom:9px;">&#x2601;&#xFE0F;</div>
+          <div style="font-size:14px;font-weight:700;color:#a29bfe;">Define the Technology Stack &amp; Patterns</div>
+          <div style="font-size:12px;color:#6c6c80;margin-top:5px;line-height:1.5;">Six recurring patterns, each with a known Azure service stack</div>
+          <div class="card-hint">&#x25B2; hover to expand</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="anim" data-delay="5" style="margin-top:22px;font-size:13px;color:#3a3a5a;">
+      Two guides inside: <span style="color:#00b894;">Project / Account Manager</span> &nbsp;&middot;&nbsp; <span style="color:#fdcb6e;">Engineer Guide</span>
+    </div>
+    <div class="anim" data-delay="6" style="margin-top:10px;font-size:11px;color:#2e2e4a;letter-spacing:.3px;">by Andrey Kerchin</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SLIDE 2 — THE SHIFT                        -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="2">
+  <div class="slide-title anim" data-delay="0">How We Got <span class="accent">Here</span></div>
+  <div class="slide-subtitle anim" data-delay="1">An honest account &mdash; and why the new position is actually stronger</div>
+
+  <!-- TIMELINE -->
+  <div class="anim" data-delay="2" style="display:flex;align-items:center;margin-top:20px;margin-bottom:20px;position:relative;">
+    <div style="text-align:center;flex-shrink:0;width:150px;">
+      <div style="width:16px;height:16px;background:#74b9ff;border-radius:50%;margin:0 auto 7px;box-shadow:0 0 12px #74b9ff88;"></div>
+      <div style="font-size:12px;font-weight:700;color:#74b9ff;">AI Core</div>
+      <div style="font-size:11px;color:#6c6c80;margin-top:2px;">Built &amp; maintained</div>
+    </div>
+    <div style="flex:1;height:2px;background:linear-gradient(90deg,#74b9ff80,#3a3a6a);"></div>
+    <div style="text-align:center;flex-shrink:0;width:130px;padding:0 10px;">
+      <div style="width:14px;height:14px;background:#1a1a2a;border:2px dashed #4a4a6a;border-radius:50%;margin:0 auto 7px;"></div>
+      <div style="font-size:12px;font-weight:700;color:#4a4a6a;">Investment</div>
+      <div style="font-size:12px;font-weight:700;color:#4a4a6a;">stopped</div>
+    </div>
+    <div style="flex:0.6;height:2px;background:repeating-linear-gradient(90deg,#2a2a4a 0,#2a2a4a 6px,transparent 6px,transparent 14px);"></div>
+    <div style="text-align:center;flex-shrink:0;width:130px;padding:0 10px;">
+      <div style="width:16px;height:16px;background:#fdcb6e;border-radius:50%;margin:0 auto 7px;box-shadow:0 0 12px #fdcb6e88;"></div>
+      <div style="font-size:12px;font-weight:700;color:#fdcb6e;">Claude Code</div>
+      <div style="font-size:11px;color:#6c6c80;margin-top:2px;">Changes the game</div>
+    </div>
+    <div style="flex:1;height:2px;background:linear-gradient(90deg,#fdcb6e80,#00b89480);"></div>
+    <div style="text-align:center;flex-shrink:0;width:130px;">
+      <div style="width:16px;height:16px;background:#00b894;border-radius:50%;margin:0 auto 7px;box-shadow:0 0 12px #00b89488;"></div>
+      <div style="font-size:12px;font-weight:700;color:#00b894;">New approach</div>
+      <div style="font-size:11px;color:#6c6c80;margin-top:2px;">Faster than ever</div>
+    </div>
+  </div>
+
+  <!-- TWO-COL COMPARISON -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;flex:1;align-content:start;">
+
+    <!-- LEFT: AI Core era -->
+    <div class="anim" data-delay="3" style="background:#0e0e1a;border:1px solid #74b9ff25;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:14px;">
+      <div style="font-size:12px;font-weight:700;color:#74b9ff;opacity:0.7;text-transform:uppercase;letter-spacing:1px;">AI Core &mdash; what happened</div>
+
+      <!-- lifecycle bar -->
+      <div style="display:flex;align-items:flex-start;gap:0;">
+        <div style="text-align:center;flex:1;">
+          <div style="width:32px;height:32px;border-radius:50%;background:#74b9ff22;border:2px solid #74b9ff60;display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto 4px;">&#x1F3D7;&#xFE0F;</div>
+          <div style="font-size:10px;color:#74b9ff;font-weight:700;">Built</div>
+          <div style="font-size:10px;color:#4a5a6a;margin-top:1px;">real product</div>
+        </div>
+        <div style="flex:1;height:2px;background:linear-gradient(90deg,#74b9ff50,#4a4a7a);margin-top:16px;"></div>
+        <div style="text-align:center;flex:1;">
+          <div style="width:32px;height:32px;border-radius:50%;background:#74b9ff15;border:2px solid #74b9ff40;display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto 4px;">&#x2699;&#xFE0F;</div>
+          <div style="font-size:10px;color:#74b9ff80;font-weight:700;">Maintained</div>
+          <div style="font-size:10px;color:#3a4a5a;margin-top:1px;">delivered value</div>
+        </div>
+        <div style="flex:1;height:2px;background:repeating-linear-gradient(90deg,#3a3a5a 0,#3a3a5a 5px,transparent 5px,transparent 10px);margin-top:16px;"></div>
+        <div style="text-align:center;flex:1;opacity:0.55;">
+          <div style="width:32px;height:32px;border-radius:50%;background:#2a2a3a;border:2px dashed #4a4a6a;display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto 4px;">&#x23F8;&#xFE0F;</div>
+          <div style="font-size:10px;color:#4a4a6a;font-weight:700;">Stalled</div>
+          <div style="font-size:10px;color:#3a3a5a;margin-top:1px;">no investment</div>
+        </div>
+        <div style="flex:1;height:2px;background:repeating-linear-gradient(90deg,#2a2a3a 0,#2a2a3a 3px,transparent 3px,transparent 8px);margin-top:16px;"></div>
+        <div style="text-align:center;flex:1;opacity:0.35;">
+          <div style="width:32px;height:32px;border-radius:50%;background:#1a1a2a;border:2px dashed #2a2a3a;display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto 4px;">&#x1F4C9;</div>
+          <div style="font-size:10px;color:#3a3a4a;font-weight:700;">Obsolete</div>
+          <div style="font-size:10px;color:#2a2a3a;margin-top:1px;">market moved on</div>
+        </div>
+      </div>
+
+      <!-- 3 key facts -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;background:#12122a;border-radius:8px;padding:10px 12px;">
+          <span style="font-size:18px;flex-shrink:0;margin-top:1px;">&#x1F4DD;</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#c0c0d8;">Real product, real delivery record</div>
+            <div style="font-size:11px;color:#6c6c80;margin-top:2px;line-height:1.4;">Reusable components that underpinned our AI solutions. Not a fiction.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;background:#12122a;border-radius:8px;padding:10px 12px;">
+          <span style="font-size:18px;flex-shrink:0;margin-top:1px;">&#x23F8;&#xFE0F;</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#c0c0d8;">Investment stopped &mdash; platform froze</div>
+            <div style="font-size:11px;color:#6c6c80;margin-top:2px;line-height:1.4;">AI tooling kept moving. The gap between platform and market grew.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;background:#160d0d;border:1px solid #e1705520;border-radius:8px;padding:10px 12px;">
+          <span style="font-size:18px;flex-shrink:0;margin-top:1px;">&#x26A0;&#xFE0F;</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#e17055;">Positioning outlived the product</div>
+            <div style="font-size:11px;color:#7a5a5a;margin-top:2px;line-height:1.4;">We kept selling "AI Core" after it stopped being a real differentiator.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Claude Code era -->
+    <div class="anim" data-delay="4" style="background:#0a1510;border:1px solid #00b89435;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:14px;">
+      <div style="font-size:12px;font-weight:700;color:#00b894;text-transform:uppercase;letter-spacing:1px;">Claude Code &mdash; the new engine</div>
+
+      <!-- speed visual -->
+      <div style="background:#0c0c1e;border:1px solid #2a2a4a;border-radius:10px;padding:13px 15px;">
+        <div style="font-size:11px;color:#6c6c80;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.8px;">POC delivery time</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#6c6c80;margin-bottom:4px;">
+              <span>With AI Core (platform-dependent)</span><span>weeks</span>
+            </div>
+            <div style="height:8px;background:#1a1a2a;border-radius:4px;">
+              <div style="height:100%;width:100%;background:linear-gradient(90deg,#2a2a50,#3a3a70);border-radius:4px;"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+              <span style="color:#6c6c80;">With Claude Code today</span>
+              <span style="color:#00b894;font-weight:700;">hours</span>
+            </div>
+            <div style="height:8px;background:#1a1a2a;border-radius:4px;">
+              <div style="height:100%;width:8%;background:#00b894;border-radius:4px;box-shadow:0 0 10px #00b89466;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 benefit cards -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;background:#0c1a12;border:1px solid #00b89425;border-radius:8px;padding:10px 12px;">
+          <span style="font-size:18px;flex-shrink:0;margin-top:1px;">&#x26A1;</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#00b894;">Faster than AI Core ever was</div>
+            <div style="font-size:11px;color:#6c6c80;margin-top:2px;line-height:1.4;">We didn't lose speed. We found a faster route &mdash; without maintenance cost.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;background:#0c1a12;border:1px solid #00b89425;border-radius:8px;padding:10px 12px;">
+          <span style="font-size:18px;flex-shrink:0;margin-top:1px;">&#x1F504;</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#00b894;">Always current, zero upkeep</div>
+            <div style="font-size:11px;color:#6c6c80;margin-top:2px;line-height:1.4;">Claude Code uses the latest APIs and patterns. No platform to maintain.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;background:#0c1a12;border:1px solid #00b89425;border-radius:8px;padding:10px 12px;">
+          <span style="font-size:18px;flex-shrink:0;margin-top:1px;">&#x1F3AF;</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#00b894;">Our process is our product</div>
+            <div style="font-size:11px;color:#6c6c80;margin-top:2px;line-height:1.4;">How we define, scope, and deliver &mdash; that is our differentiator, not a codebase.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="anim" data-delay="5" style="margin-top:14px;">
+    <div class="callout" style="background:#12122a;border:2px solid #fdcb6e40;">
+      <div class="callout-shimmer"></div>
+      <div style="position:relative;font-size:13px;color:#a0a0b8;line-height:1.5;">
+        <span style="color:#fdcb6e;font-weight:700;">The conclusion is not that we lost something &mdash; it is that the game changed.</span> AI-assisted coding removed the need for a maintained platform. The goal remains the same: a working demo that helps the customer understand their needs, estimate ROI, and decide what to build next.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SLIDE 3 — REAL VALUE                       -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="3">
+  <div class="slide-title anim" data-delay="0">Our Value Is Not <span class="accent-red">Just</span> in Coding</div>
+  <div class="slide-subtitle anim" data-delay="1">We translate customer business cases into clear prototype requirements &mdash; fast and repeatably, because we have done it before.</div>
+
+  <div style="display:flex;flex-direction:column;gap:10px;flex:1;margin-top:10px;">
+
+    <!-- ROW 1: Business Translation -->
+    <div class="anim" data-delay="2" style="flex:1;background:#12122a;border:1px solid #74b9ff40;border-radius:14px;padding:14px 28px;display:flex;align-items:stretch;gap:24px;">
+      <div style="width:190px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-right:1px solid #74b9ff15;padding-right:24px;">
+        <div style="width:58px;height:58px;background:#74b9ff18;border:2px solid #74b9ff50;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;">&#x1F4A1;</div>
+        <div style="font-size:20px;font-weight:700;color:#74b9ff;line-height:1.3;text-align:center;">Business<br>Translation</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center;">
+        <div style="background:#0c0c1e;border:1px solid #74b9ff20;border-radius:10px;padding:12px 18px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="flex:1;background:#1a1a2e;border:1px solid #e1705530;border-radius:8px;padding:11px 14px;">
+              <div style="font-size:11px;color:#e17055;font-weight:700;margin-bottom:4px;">Customer says</div>
+              <div style="font-size:13px;color:#8a7070;font-style:italic;line-height:1.4;">"Build me a document chatbot"</div>
+            </div>
+            <div style="color:#74b9ff;font-size:22px;flex-shrink:0;">&#x2192;</div>
+            <div style="flex:1;background:#0e1a0e;border:1px solid #74b9ff30;border-radius:8px;padding:11px 14px;">
+              <div style="font-size:11px;color:#74b9ff;font-weight:700;margin-bottom:4px;">We build from</div>
+              <div style="font-size:13px;color:#6a9a7a;line-height:1.4;">Flask · AI Search · GPT-4o · JSON spec</div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:15px;color:#a0a0b8;line-height:1.65;">Anyone can do this translation in theory. We do it <strong style="color:#74b9ff;">fast and correctly</strong> because we have done it many times &mdash; we know the questions, the pitfalls, and the gaps customers don&rsquo;t mention.</div>
+      </div>
+    </div>
+
+    <!-- ROW 2: Repeatable Process -->
+    <div class="anim" data-delay="3" style="flex:1;background:#12122a;border:1px solid #00b89440;border-radius:14px;padding:14px 28px;display:flex;align-items:stretch;gap:24px;">
+      <div style="width:190px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-right:1px solid #00b89415;padding-right:24px;">
+        <div style="width:58px;height:58px;background:#00b89418;border:2px solid #00b89450;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;">&#x1F4CB;</div>
+        <div style="font-size:20px;font-weight:700;color:#00b894;line-height:1.3;text-align:center;">Repeatable<br>Process</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center;">
+        <div style="background:#0c0c1e;border:1px solid #00b89420;border-radius:10px;padding:12px 22px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
+            <div style="text-align:center;"><div style="font-size:26px;">&#x1F4DD;</div><div style="font-size:12px;color:#00b894;font-weight:700;margin-top:5px;">Brief</div></div>
+            <div style="color:#2a4a3a;font-size:18px;padding-bottom:18px;">&#x2192;</div>
+            <div style="text-align:center;"><div style="font-size:26px;">&#x1F50D;</div><div style="font-size:12px;color:#00b894;font-weight:700;margin-top:5px;">Clarify</div></div>
+            <div style="color:#2a4a3a;font-size:18px;padding-bottom:18px;">&#x2192;</div>
+            <div style="text-align:center;"><div style="font-size:26px;">&#x1F528;</div><div style="font-size:12px;color:#00b894;font-weight:700;margin-top:5px;">Build</div></div>
+            <div style="color:#2a4a3a;font-size:18px;padding-bottom:18px;">&#x2192;</div>
+            <div style="text-align:center;"><div style="font-size:26px;">&#x2705;</div><div style="font-size:12px;color:#00b894;font-weight:700;margin-top:5px;">Validate</div></div>
+          </div>
+        </div>
+        <div style="font-size:15px;color:#a0a0b8;line-height:1.65;">Not reinvented each time. We have <strong style="color:#00b894;">predefined skills, reusable prompts, and structured guidance</strong> for every stage &mdash; discovery checklists, pattern-specific briefs, and validation criteria ready to go.</div>
+      </div>
+    </div>
+
+    <!-- ROW 3: AI-Assisted Delivery -->
+    <div class="anim" data-delay="4" style="flex:1;background:#12122a;border:1px solid #fdcb6e40;border-radius:14px;padding:14px 28px;display:flex;align-items:stretch;gap:24px;">
+      <div style="width:190px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-right:1px solid #fdcb6e15;padding-right:24px;">
+        <div style="width:58px;height:58px;background:#fdcb6e18;border:2px solid #fdcb6e50;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;">&#x26A1;</div>
+        <div style="font-size:20px;font-weight:700;color:#fdcb6e;line-height:1.3;text-align:center;">AI-Assisted<br>Delivery</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center;">
+        <div style="background:#0c0c1e;border:1px solid #fdcb6e20;border-radius:10px;padding:12px 22px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
+            <div style="text-align:center;"><div style="font-size:26px;">&#x270D;&#xFE0F;</div><div style="font-size:12px;color:#6c6c80;font-weight:700;margin-top:5px;">Write brief</div></div>
+            <div style="color:#3a3a2a;font-size:18px;padding-bottom:18px;">&#x2192;</div>
+            <div style="text-align:center;"><div style="font-size:26px;">&#x26A1;</div><div style="font-size:12px;color:#fdcb6e;font-weight:700;margin-top:5px;">AI generates</div></div>
+            <div style="color:#3a3a2a;font-size:18px;padding-bottom:18px;">&#x2192;</div>
+            <div style="text-align:center;"><div style="font-size:26px;">&#x1F441;&#xFE0F;</div><div style="font-size:12px;color:#6c6c80;font-weight:700;margin-top:5px;">Human reviews</div></div>
+            <div style="color:#3a3a2a;font-size:18px;padding-bottom:18px;">&#x2192;</div>
+            <div style="text-align:center;"><div style="font-size:26px;">&#x1F3AF;</div><div style="font-size:12px;color:#6c6c80;font-weight:700;margin-top:5px;">Demo</div></div>
+          </div>
+        </div>
+        <div style="font-size:15px;color:#a0a0b8;line-height:1.65;">AI gets <strong style="color:#fdcb6e;">call transcripts, customer context, and code context</strong> together &mdash; converting them into implementable scope and tasks in hours, not weeks. Human reviews every output.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="anim" data-delay="5" style="margin-top:10px;">
+    <div style="background:#1a1012;border:2px solid #e1705540;border-radius:10px;padding:13px 18px;display:flex;align-items:center;gap:14px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:rgba(225,112,85,0.15);border:2px solid #e17055;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">&#x1F6E1;&#xFE0F;</div>
+      <div style="font-size:13px;color:#a0a0b8;line-height:1.6;">
+        <strong style="color:#e17055;">Critical constraint:</strong> during prototyping, we do not connect AI tooling directly to customer production systems or live data. We work with <strong style="color:#e0e0f0;">approved copies, samples, or sanitized datasets</strong>. This is how we move fast without taking on infrastructure or security risk.
+      </div>
+    </div>
+  </div>
+
+  <div class="anim" data-delay="6" style="margin-top:8px;">
+    <div style="background:#12122a;border:1px solid #a29bfe30;border-radius:10px;padding:11px 18px;text-align:center;font-size:13px;color:#6c6c80;">
+      Two guides bring this to life &mdash; one for the <span style="color:#00b894;font-weight:700;">project / account manager</span>, one for the <span style="color:#fdcb6e;font-weight:700;">engineer</span>. Continue to choose yours.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SLIDE 4 — FORK: CHOOSE YOUR GUIDE          -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="4">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div class="anim" data-delay="0" style="text-align:center;margin-bottom:28px;">
+      <div class="slide-title" style="font-size:38px;">Choose <span class="accent-purple">Your Guide</span></div>
+      <div style="font-size:16px;color:#6c6c80;margin-top:6px;">Same process, two perspectives &mdash; pick the one relevant to your role</div>
+    </div>
+
+    <div class="anim" data-delay="1" style="display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:960px;width:100%;">
+
+      <!-- MANAGER CARD -->
+      <div class="fork-card" style="border-color:#00b894;" onclick="chooseTrack('manager')">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:32px;">&#x1F9ED;</div>
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#00b894;">Project / Account Manager Guide</div>
+            <div style="font-size:12px;color:#6c6c80;margin-top:2px;">For: managers &middot; pre-sales &middot; solution leads &middot; architects</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#00b894;">&#x2714;</span> How to think about rapid prototyping</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#00b894;">&#x2714;</span> What inputs to gather before implementation</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#00b894;">&#x2714;</span> Prototype patterns and roles</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#00b894;">&#x2714;</span> How to define success and hand off correctly</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#00b894;">&#x2714;</span> Common mistakes to avoid</div>
+        </div>
+        <div style="margin-top:8px;">
+          <div style="background:rgba(0,184,148,0.15);border:1px solid #00b894;color:#00b894;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;text-align:center;transition:all 0.2s;">
+            Open Manager Guide &rarr;
+          </div>
+        </div>
+      </div>
+
+      <!-- ENGINEER CARD -->
+      <div class="fork-card" style="border-color:#fdcb6e;" onclick="chooseTrack('impl')">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:32px;">&#x2699;&#xFE0F;</div>
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#fdcb6e;">Engineer Guide</div>
+            <div style="font-size:12px;color:#6c6c80;margin-top:2px;">For: developers &middot; engineers</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#fdcb6e;">&#x2714;</span> Preconditions and minimum input requirements</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#fdcb6e;">&#x2714;</span> 9-step implementation workflow</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#fdcb6e;">&#x2714;</span> How to use AI-assisted coding effectively</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#fdcb6e;">&#x2714;</span> What to review and validate before demoing</div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a0b8;"><span style="color:#fdcb6e;">&#x2714;</span> Common failure modes and how to prevent them</div>
+        </div>
+        <div style="margin-top:8px;">
+          <div style="background:rgba(253,203,110,0.15);border:1px solid #fdcb6e;color:#fdcb6e;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;text-align:center;transition:all 0.2s;">
+            Open Engineer Guide &rarr;
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MANAGER TRACK — SLIDE 5                    -->
+<!-- What This Is / Is Not                      -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="5" data-track="manager">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0">Manager&rsquo;s Role in <span class="accent-green">Prototype Delivery</span></div>
+    <span class="anim tag" data-delay="0" style="background:rgba(0,184,148,0.15);color:#00b894;margin-top:4px;">Manager Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">What you own, what you delegate &mdash; and why this split matters</div>
+
+  <!-- Pipeline flow diagram -->
+  <div class="anim" data-delay="1" style="margin:8px 0 10px;display:flex;align-items:center;justify-content:center;gap:0;">
+    <div style="display:flex;align-items:center;background:#0e0e20;border:2px solid #00b89460;border-radius:10px;padding:10px 16px;gap:8px;min-width:0;box-shadow:0 0 10px #00b89415;">
+      <span style="font-size:20px;">&#x2753;</span>
+      <div style="font-size:11px;color:#00b894;font-weight:700;white-space:nowrap;">Business<br>Case</div>
+      <div style="font-size:9px;color:#00b894;opacity:0.7;white-space:nowrap;margin-left:4px;">YOU</div>
+    </div>
+    <div style="display:flex;align-items:center;padding:0 4px;">
+      <svg width="28" height="12" viewBox="0 0 28 12"><path d="M0 6 L20 6 M16 2 L22 6 L16 10" stroke="#2a2a6a" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="display:flex;align-items:center;background:#0e0e20;border:2px solid #00b89460;border-radius:10px;padding:10px 16px;gap:8px;min-width:0;box-shadow:0 0 10px #00b89415;">
+      <span style="font-size:20px;">&#x1F4CB;</span>
+      <div style="font-size:11px;color:#00b894;font-weight:700;white-space:nowrap;">Structured<br>Brief</div>
+      <div style="font-size:9px;color:#00b894;opacity:0.7;white-space:nowrap;margin-left:4px;">YOU</div>
+    </div>
+    <div style="display:flex;align-items:center;padding:0 4px;">
+      <svg width="28" height="12" viewBox="0 0 28 12"><path d="M0 6 L20 6 M16 2 L22 6 L16 10" stroke="#2a2a6a" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="display:flex;align-items:center;background:#0e0e20;border:1px solid #fdcb6e30;border-radius:10px;padding:10px 16px;gap:8px;min-width:0;">
+      <span style="font-size:20px;">&#x1F916;</span>
+      <span style="font-size:15px;color:#a0a0b8;">+</span>
+      <span style="font-size:20px;">&#x1F9D1;&#x200D;&#x1F4BB;</span>
+      <div style="font-size:11px;color:#fdcb6e;font-weight:700;white-space:nowrap;">Build<br><span style="font-size:9px;opacity:0.7;">ENGINEER</span></div>
+    </div>
+    <div style="display:flex;align-items:center;padding:0 4px;">
+      <svg width="28" height="12" viewBox="0 0 28 12"><path d="M0 6 L20 6 M16 2 L22 6 L16 10" stroke="#2a2a6a" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="display:flex;align-items:center;background:#0e0e20;border:2px solid #00b89460;border-radius:10px;padding:10px 16px;gap:8px;min-width:0;box-shadow:0 0 12px #00b89420;">
+      <span style="font-size:20px;">&#x1F4BB;</span>
+      <div style="font-size:11px;color:#00b894;font-weight:700;white-space:nowrap;">Demo<br><span style="font-size:9px;opacity:0.7;">YOU + IMPL</span></div>
+    </div>
+  </div>
+
+  <div class="two-col" style="flex:1;align-items:start;">
+    <div class="anim" data-delay="2">
+      <div class="section-label accent-green">The manager owns&hellip;</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F4A1;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Business translation</strong> &mdash; converting the customer&rsquo;s ask into a clear, implementable brief with specific requirements</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F4BE;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Gathering inputs</strong> &mdash; business case, data access, success criteria, demo audience, and scope boundary</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x2705;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Quality gate before and after</strong> &mdash; reviewing the brief before handoff, and reviewing the result to confirm it serves the agreed business goal</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F91D;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Customer relationship</strong> &mdash; managing expectations, presenting the demo, explaining limitations honestly</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F6A7;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Scope control</strong> &mdash; defining what is explicitly out; protecting against scope creep during implementation</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anim" data-delay="3">
+      <div class="section-label accent-red">The manager does not own&hellip;</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="flow-step" style="border-color:#e1705530;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F9D1;&#x200D;&#x1F4BB;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Writing code</strong> or choosing the technical architecture &mdash; that is the engineer&rsquo;s domain</div>
+        </div>
+        <div class="flow-step" style="border-color:#e1705530;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x2601;&#xFE0F;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Azure infrastructure</strong> setup, model selection, or service configuration &mdash; these follow from the brief</div>
+        </div>
+        <div class="flow-step" style="border-color:#e1705530;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F916;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">The <strong style="color:#e0e0f0;">AI-assisted coding process</strong> itself &mdash; the engineer runs and reviews all generated code</div>
+        </div>
+        <div class="flow-step" style="border-color:#e1705530;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F4DD;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Inventing requirements during implementation</strong> &mdash; new requirements go back through the brief, not into ad-hoc messages</div>
+        </div>
+        <div class="flow-step" style="border-color:#e1705530;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F50E;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Replacing engineering judgment</strong> &mdash; trust the engineer on technical decisions; stay available to clarify the business intent</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;background:#12122a;border:1px solid #fdcb6e30;border-radius:10px;padding:13px 16px;">
+        <div style="font-size:13px;color:#a0a0b8;line-height:1.6;">
+          <strong style="color:#fdcb6e;">The key split:</strong> the manager converts ambiguity into clarity. The engineer converts clarity into a working demo. If the brief is unclear, the prototype will be wrong &mdash; no amount of coding fixes that.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MANAGER TRACK — SLIDE 6                    -->
+<!-- When to Use / When Not                     -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="6" data-track="manager">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0">When <span class="accent-green">Prototype Delivery</span> Is Appropriate</div>
+    <span class="anim tag" data-delay="0" style="background:rgba(0,184,148,0.15);color:#00b894;margin-top:4px;">Manager Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">A prototype / POC is not always the right format &mdash; here is how to tell</div>
+
+  <!-- Fit check strip -->
+  <div class="anim" data-delay="1" style="margin:8px 0 10px;display:flex;gap:8px;align-items:stretch;">
+    <div style="flex:1;background:#0e0e20;border:1px solid #00b89440;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:rgba(0,184,148,0.15);border:2px solid #00b894;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span style="font-size:18px;">&#x1F50D;</span>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#00b894;margin-bottom:2px;">PROOF NEEDED?</div>
+        <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Customer wants to see it work before committing</div>
+      </div>
+      <div style="margin-left:auto;font-size:20px;color:#00b894;">&#x2713;</div>
+    </div>
+    <div style="flex:1;background:#0e0e20;border:1px solid #00b89440;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:rgba(0,184,148,0.15);border:2px solid #00b894;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span style="font-size:18px;">&#x1F4BE;</span>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#00b894;margin-bottom:2px;">DATA ACCESSIBLE?</div>
+        <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Real or representative data is reachable</div>
+      </div>
+      <div style="margin-left:auto;font-size:20px;color:#00b894;">&#x2713;</div>
+    </div>
+    <div style="flex:1;background:#0e0e20;border:1px solid #00b89440;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:rgba(0,184,148,0.15);border:2px solid #00b894;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span style="font-size:18px;">&#x1F3AF;</span>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#00b894;margin-bottom:2px;">QUESTION CLEAR?</div>
+        <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Problem is defined enough to prototype against</div>
+      </div>
+      <div style="margin-left:auto;font-size:20px;color:#00b894;">&#x2713;</div>
+    </div>
+    <div style="display:flex;align-items:center;padding:0 4px;">
+      <svg width="28" height="12" viewBox="0 0 28 12"><path d="M0 6 L20 6 M16 2 L22 6 L16 10" stroke="#00b894" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="background:rgba(0,184,148,0.12);border:2px solid #00b894;border-radius:10px;padding:10px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:88px;box-shadow:0 0 14px #00b89420;">
+      <div style="font-size:26px;">&#x1F7E2;</div>
+      <div style="font-size:10px;font-weight:700;color:#00b894;text-align:center;">GOOD<br>FIT</div>
+    </div>
+  </div>
+
+  <div class="two-col" style="flex:1;align-items:start;">
+    <div class="anim" data-delay="2">
+      <div class="section-label accent-green">A prototype is the right format when&hellip;</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F50D;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">Customer wants to <strong style="color:#e0e0f0;">see a working demo</strong> before committing to a larger engagement</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F4CA;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">Need to <strong style="color:#e0e0f0;">validate a technical approach</strong> on real customer data before investing in a full solution</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F3AF;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">A <strong style="color:#e0e0f0;">customer-side champion</strong> needs something concrete to show internally and build support for the project</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F4AC;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">The goal is to <strong style="color:#e0e0f0;">decide whether to invest further</strong> &mdash; not to deliver a finished system</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F9EA;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">The team needs to <strong style="color:#e0e0f0;">prove what is actually possible</strong> in the customer&rsquo;s own context and data</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anim" data-delay="3">
+      <div class="section-label accent-red">A prototype is not the right format when&hellip;</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="flow-step" style="border-color:#e1705530;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F6AB;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">Customer expects a <strong style="color:#e0e0f0;">production-ready, supportable system</strong> as the deliverable</div>
+        </div>
+        <div class="flow-step" style="border-color:#e1705530;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F4CF;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">The scope is <strong style="color:#e0e0f0;">too large</strong> for a short engagement &mdash; a prototype must demonstrate one clear thing, not ten</div>
+        </div>
+        <div class="flow-step" style="border-color:#e1705530;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x1F4C6;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">The <strong style="color:#e0e0f0;">pre-work outweighs the prototype</strong> &mdash; discovery, ambiguity resolution, or data access takes more effort than the build itself</div>
+        </div>
+        <div class="flow-step" style="border-color:#e1705530;padding:11px 14px;">
+          <span style="font-size:20px;flex-shrink:0;">&#x23F1;</span>
+          <div style="font-size:13px;color:#a0a0b8;line-height:1.5;">Available hours are <strong style="color:#e0e0f0;">limited</strong> and would be spent on scoping rather than building &mdash; the format only works when the problem can be scoped quickly</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;background:#0d1a12;border:2px solid #00b89440;border-radius:10px;padding:15px 18px;">
+        <div style="font-size:14px;font-weight:700;color:#00b894;margin-bottom:8px;">The business purpose of a POC</div>
+        <div style="font-size:13px;color:#a0a0b8;line-height:1.7;">
+          A prototype reduces uncertainty and helps the customer answer: <strong style="color:#e0e0f0;">is this worth investing in?</strong> It lets the customer&rsquo;s internal champion demonstrate working value to stakeholders, and it provides the data to estimate <strong style="color:#00b894;">ROI, implementation effort, and the value of future investment</strong>.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:12px;">
+          <div style="background:#0a0a1e;border:1px solid #00b89425;border-radius:8px;padding:9px 12px;text-align:center;">
+            <div style="font-size:16px;margin-bottom:3px;">&#x1F9EA;</div>
+            <div style="font-size:11px;font-weight:700;color:#00b894;">POC</div>
+            <div style="font-size:10px;color:#6c6c80;margin-top:2px;">working demo</div>
+          </div>
+          <div style="background:#0a0a1e;border:1px solid #00b89425;border-radius:8px;padding:9px 12px;text-align:center;">
+            <div style="font-size:16px;margin-bottom:3px;">&#x1F4CA;</div>
+            <div style="font-size:11px;font-weight:700;color:#00b894;">Estimate ROI</div>
+            <div style="font-size:10px;color:#6c6c80;margin-top:2px;">value + effort + cost</div>
+          </div>
+          <div style="background:#0a0a1e;border:1px solid #00b89425;border-radius:8px;padding:9px 12px;text-align:center;">
+            <div style="font-size:16px;margin-bottom:3px;">&#x1F4A1;</div>
+            <div style="font-size:11px;font-weight:700;color:#00b894;">Clearer needs</div>
+            <div style="font-size:10px;color:#6c6c80;margin-top:2px;">customer learns what they need</div>
+          </div>
+          <div style="background:#0a0a1e;border:1px solid #00b89425;border-radius:8px;padding:9px 12px;text-align:center;">
+            <div style="font-size:16px;margin-bottom:3px;">&#x1F3AF;</div>
+            <div style="font-size:11px;font-weight:700;color:#00b894;">MVP scope</div>
+            <div style="font-size:10px;color:#6c6c80;margin-top:2px;">decide &amp; invest</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MANAGER TRACK — SLIDE 7                    -->
+<!-- What Must Be Clarified                     -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="7" data-track="manager">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0">Why Prototypes <span class="accent-red">Fail</span></div>
+    <span class="anim tag" data-delay="0" style="background:rgba(0,184,148,0.15);color:#00b894;margin-top:4px;">Manager Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">A prototype should deliver clarity and a path forward &mdash; these are the things that prevent it</div>
+
+  <!-- Cards wrapper fills remaining height -->
+  <div style="flex:1;display:flex;flex-direction:column;gap:8px;margin-top:8px;min-height:0;">
+
+  <!-- 4-card top row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;flex:1;min-height:0;">
+
+    <div class="anim" data-delay="2" style="background:#0e0e20;border:1px solid #74b9ff40;border-radius:12px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
+      <div style="width:64px;height:64px;border-radius:16px;background:rgba(116,185,255,0.12);display:flex;align-items:center;justify-content:center;">
+        <svg width="34" height="34" viewBox="0 0 26 26" fill="none">
+          <rect x="2" y="5" width="22" height="16" rx="3" stroke="#74b9ff" stroke-width="1.5"/>
+          <path d="M13 10v2m0 3h.01" stroke="#74b9ff" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="13" cy="15.5" r=".5" fill="#74b9ff"/>
+        </svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#74b9ff;">Business Case</div>
+      <div style="font-size:13px;color:#6c6c80;line-height:1.5;">Why this matters, what problem it solves, why it is worth doing. If you can't state it in 1–2 sentences — you're not ready.</div>
+      <div style="font-size:12px;color:#4a4a6a;font-style:italic;line-height:1.4;">"Field engineers waste hours searching for relevant safety incidents — AI can surface them instantly."</div>
+    </div>
+
+    <div class="anim" data-delay="3" style="background:#0e0e20;border:1px solid #00b89440;border-radius:12px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
+      <div style="width:64px;height:64px;border-radius:16px;background:rgba(0,184,148,0.12);display:flex;align-items:center;justify-content:center;">
+        <svg width="34" height="34" viewBox="0 0 26 26" fill="none">
+          <polygon points="13,3 15.5,9.5 22.5,10 17.5,15 19.2,22 13,18.5 6.8,22 8.5,15 3.5,10 10.5,9.5" stroke="#00b894" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#00b894;">Demo Scenario</div>
+      <div style="font-size:13px;color:#6c6c80;line-height:1.5;">Not why &mdash; that is the business case. This is <em>what exactly we show</em>: the steps, the data, the expected result. Define before coding.</div>
+    </div>
+
+    <div class="anim" data-delay="4" style="background:#0e0e20;border:1px solid #fdcb6e40;border-radius:12px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;position:relative;">
+      <div style="position:absolute;top:10px;right:10px;background:#e17055;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;">BLOCKER</div>
+      <div style="width:64px;height:64px;border-radius:16px;background:rgba(253,203,110,0.12);display:flex;align-items:center;justify-content:center;">
+        <svg width="34" height="34" viewBox="0 0 26 26" fill="none">
+          <ellipse cx="13" cy="9" rx="8" ry="4" stroke="#fdcb6e" stroke-width="1.5"/>
+          <path d="M5 9v4c0 2.2 3.6 4 8 4s8-1.8 8-4V9" stroke="#fdcb6e" stroke-width="1.5"/>
+          <path d="M5 13v4c0 2.2 3.6 4 8 4s8-1.8 8-4v-4" stroke="#fdcb6e" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#fdcb6e;">The Data</div>
+      <div style="font-size:13px;color:#6c6c80;line-height:1.5;">Where does it live? Who owns it? Data access is the #1 real-world blocker. <strong style="color:#e0e0f0;">Resolve early.</strong></div>
+    </div>
+
+    <div class="anim" data-delay="5" style="background:#0e0e20;border:1px solid #a29bfe40;border-radius:12px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
+      <div style="width:64px;height:64px;border-radius:16px;background:rgba(162,155,254,0.12);display:flex;align-items:center;justify-content:center;">
+        <svg width="34" height="34" viewBox="0 0 26 26" fill="none">
+          <path d="M7 18c-2 0-4-1.3-4-3.5a3.5 3.5 0 0 1 3-3.46A5 5 0 0 1 15.5 8a5 5 0 0 1 4.9 4H21a3 3 0 0 1 0 6H7z" stroke="#a29bfe" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#a29bfe;">The Environment</div>
+      <div style="font-size:13px;color:#6c6c80;line-height:1.5;">Default: <strong style="color:#e0e0f0;">VIAcode-controlled CSP subscription</strong>. Deviate only by explicit request. Which services? Who grants access?</div>
+    </div>
+  </div>
+
+  <!-- 3-card + warning bottom row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:8px;flex:1;min-height:0;">
+
+    <div class="anim" data-delay="3" style="background:#0e0e20;border:1px solid #00b89440;border-radius:12px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
+      <div style="width:64px;height:64px;border-radius:16px;background:rgba(0,184,148,0.12);display:flex;align-items:center;justify-content:center;">
+        <svg width="34" height="34" viewBox="0 0 26 26" fill="none">
+          <circle cx="13" cy="13" r="9" stroke="#00b894" stroke-width="1.5"/>
+          <path d="M9 13l3 3 5-5" stroke="#00b894" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13 4v2M13 20v2M4 13h2M20 13h2" stroke="#00b894" stroke-width="1" stroke-linecap="round" opacity=".4"/>
+        </svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#00b894;">Success Criteria</div>
+      <div style="font-size:13px;color:#6c6c80;line-height:1.5;"><strong style="color:#e0e0f0;">Measurable and agreed in advance.</strong><br><span style="color:#e17055;">"Answers well"</span> ≠ criterion.<br><span style="color:#00b894;">"7/10 rated correct by expert"</span> = criterion.</div>
+    </div>
+
+    <div class="anim" data-delay="4" style="background:#0e0e20;border:1px solid #fd79a840;border-radius:12px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
+      <div style="width:64px;height:64px;border-radius:16px;background:rgba(253,121,168,0.12);display:flex;align-items:center;justify-content:center;">
+        <svg width="34" height="34" viewBox="0 0 26 26" fill="none">
+          <circle cx="10" cy="9" r="3.5" stroke="#fd79a8" stroke-width="1.5"/>
+          <circle cx="18" cy="9" r="3.5" stroke="#fd79a8" stroke-width="1.5"/>
+          <path d="M3 21c0-3.3 3.1-6 7-6" stroke="#fd79a8" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M23 21c0-3.3-3.1-6-7-6" stroke="#fd79a8" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#fd79a8;">Demo Audience</div>
+      <div style="font-size:13px;color:#6c6c80;line-height:1.5;">Architect vs. business sponsor read the same demo very differently. Know who's in the room.</div>
+    </div>
+
+    <div class="anim" data-delay="5" style="background:#0e0e20;border:1px solid #e1705540;border-radius:12px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
+      <div style="width:64px;height:64px;border-radius:16px;background:rgba(225,112,85,0.12);display:flex;align-items:center;justify-content:center;">
+        <svg width="34" height="34" viewBox="0 0 26 26" fill="none">
+          <rect x="4" y="4" width="18" height="18" rx="3" stroke="#e17055" stroke-width="1.5" stroke-dasharray="4 2"/>
+          <path d="M9 9l8 8M17 9l-8 8" stroke="#e17055" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#e17055;">Scope Boundary</div>
+      <div style="font-size:13px;color:#6c6c80;line-height:1.5;">What is explicitly OUT? Protection against scope creep — as important as what's in.</div>
+    </div>
+
+    <div class="anim" data-delay="5" style="background:#12122a;border:2px solid #e1705540;border-radius:12px;padding:20px 20px;display:flex;align-items:center;gap:18px;position:relative;overflow:hidden;">
+      <div class="callout-shimmer"></div>
+      <div style="position:relative;width:52px;height:52px;flex-shrink:0;border-radius:50%;background:rgba(225,112,85,0.15);border:2px solid #e17055;display:flex;align-items:center;justify-content:center;">
+        <svg width="28" height="28" viewBox="0 0 22 22" fill="none">
+          <path d="M11 3l8.5 15H2.5L11 3z" stroke="#e17055" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M11 9v4" stroke="#e17055" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="11" cy="16" r=".8" fill="#e17055"/>
+        </svg>
+      </div>
+      <div style="position:relative;">
+        <strong style="color:#e17055;display:block;margin-bottom:6px;font-size:16px;">This is why our process exists</strong>
+        <div style="font-size:13px;color:#a0a0b8;line-height:1.6;">When these are left unclear, the engineer builds something &mdash; just not what the customer needed. Our process catches this before coding starts.</div>
+      </div>
+    </div>
+  </div>
+  </div><!-- end cards wrapper -->
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MANAGER TRACK — SLIDE 8                    -->
+<!-- Prototype Patterns                         -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="8" data-track="manager">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0"><span class="accent-purple">6 Recurring Patterns</span></div>
+    <span class="anim tag" data-delay="0" style="background:rgba(0,184,148,0.15);color:#00b894;margin-top:4px;">Manager Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">No single code template covers all of these &mdash; knowing the pattern matters</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;align-content:start;margin-top:4px;">
+    <div class="anim pattern-card" data-delay="2" style="border-color:#74b9ff40;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:22px;">&#x1F4C4;</span>
+        <div style="font-size:14px;font-weight:700;color:#74b9ff;">Intelligent Search / Q&amp;A Over Documents</div>
+      </div>
+      <div style="font-size:12px;color:#a0a0b8;line-height:1.6;">Natural language queries over a corpus of documents: manuals, policies, reports, contracts. Retrieves relevant content and generates a response. Common in industries with large documentation libraries.</div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="tag" style="background:rgba(116,185,255,0.1);color:#74b9ff;font-size:10px;">Azure AI Search</span>
+        <span class="tag" style="background:rgba(116,185,255,0.1);color:#74b9ff;font-size:10px;">Azure OpenAI</span>
+      </div>
+    </div>
+
+    <div class="anim pattern-card" data-delay="3" style="border-color:#00b89440;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:22px;">&#x1F4CA;</span>
+        <div style="font-size:14px;font-weight:700;color:#00b894;">Data Analysis &amp; Insight Generation</div>
+      </div>
+      <div style="font-size:12px;color:#a0a0b8;line-height:1.6;">Automated summaries, anomaly detection, or plain-language reporting from structured/semi-structured data. Surfaces insights that were previously buried in spreadsheets or BI tools.</div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="tag" style="background:rgba(0,184,148,0.1);color:#00b894;font-size:10px;">Azure OpenAI</span>
+        <span class="tag" style="background:rgba(0,184,148,0.1);color:#00b894;font-size:10px;">PostgreSQL</span>
+        <span class="tag" style="background:rgba(0,184,148,0.1);color:#00b894;font-size:10px;">pgvector</span>
+        <span class="tag" style="background:rgba(0,184,148,0.1);color:#00b894;font-size:10px;">trigram</span>
+      </div>
+    </div>
+
+    <div class="anim pattern-card" data-delay="3" style="border-color:#81ecec40;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:22px;">&#x1F4C4;</span>
+        <div style="font-size:14px;font-weight:700;color:#81ecec;">OCR / Document Extraction</div>
+      </div>
+      <div style="font-size:12px;color:#a0a0b8;line-height:1.6;">Extracting structured data from scanned or unstructured documents &mdash; medical records, invoices, forms, contracts. Common when source data is image-based or handwritten. Often paired with Q&amp;A over the extracted content.</div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="tag" style="background:rgba(129,236,236,0.1);color:#81ecec;font-size:10px;">Azure Document Intelligence</span>
+        <span class="tag" style="background:rgba(129,236,236,0.1);color:#81ecec;font-size:10px;">Azure OpenAI</span>
+      </div>
+    </div>
+
+    <div class="anim pattern-card" data-delay="4" style="border-color:#a29bfe40;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:22px;">&#x2699;&#xFE0F;</span>
+        <div style="font-size:14px;font-weight:700;color:#a29bfe;">Process Automation / Workflow Assistant</div>
+      </div>
+      <div style="font-size:12px;color:#a0a0b8;line-height:1.6;">Repetitive knowledge work &mdash; drafting documents, classifying requests, routing tickets, extracting data from forms. The prototype demonstrates one step of the process working end-to-end.</div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="tag" style="background:rgba(162,155,254,0.1);color:#a29bfe;font-size:10px;">Azure OpenAI</span>
+        <span class="tag" style="background:rgba(162,155,254,0.1);color:#a29bfe;font-size:10px;">AKS</span>
+      </div>
+    </div>
+
+    <div class="anim pattern-card" data-delay="5" style="border-color:#fdcb6e40;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:22px;">&#x1F4AC;</span>
+        <div style="font-size:14px;font-weight:700;color:#fdcb6e;">Conversational Interface Over Internal Data</div>
+      </div>
+      <div style="font-size:12px;color:#a0a0b8;line-height:1.6;">Chat-based interaction with internal knowledge or systems. Differs from Pattern 1 in its emphasis on conversation flow and multi-turn interaction, not just single-query retrieval.</div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="tag" style="background:rgba(253,203,110,0.1);color:#fdcb6e;font-size:10px;">Azure OpenAI</span>
+        <span class="tag" style="background:rgba(253,203,110,0.1);color:#fdcb6e;font-size:10px;">AI Search</span>
+        <span class="tag" style="background:rgba(253,203,110,0.1);color:#fdcb6e;font-size:10px;">Custom layer (AKS)</span>
+      </div>
+    </div>
+
+    <div class="anim pattern-card" data-delay="6" style="border-color:#fd79a840;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:22px;">&#x1F916;</span>
+        <div style="font-size:14px;font-weight:700;color:#fd79a8;">Multi-Step / Agent-Based Workflow</div>
+      </div>
+      <div style="font-size:12px;color:#a0a0b8;line-height:1.6;">Sequence of decisions, tool calls, and sub-tasks &mdash; look up, reason, act, verify. Under the hood: <strong style="color:#fd79a8;">Claude Code CLI</strong> with a custom orchestration layer on top. More complex to scope; define the loop carefully before building.</div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="tag" style="background:rgba(253,121,168,0.1);color:#fd79a8;font-size:10px;">Claude Code CLI</span>
+        <span class="tag" style="background:rgba(253,121,168,0.1);color:#fd79a8;font-size:10px;">Custom orchestration</span>
+        <span class="tag" style="background:rgba(253,121,168,0.1);color:#fd79a8;font-size:10px;">AKS</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="anim" data-delay="7" style="margin-top:10px;">
+    <div style="background:#12122a;border:1px solid #3a3a5a;border-radius:10px;padding:10px 16px;font-size:11px;color:#6c6c80;line-height:1.5;">
+      &#x26A0;&#xFE0F; No single code template covers all 6 patterns well. The value is knowing which pattern applies &mdash; and our preferred stack: <strong style="color:#a0a0b8;">AKS &middot; PostgreSQL (pgvector + trigram) &middot; Azure OpenAI &middot; Azure Document Intelligence</strong>.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MANAGER TRACK — SLIDE 9                    -->
+<!-- Roles & Success & Risks                    -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="9" data-track="manager">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0"><span class="accent">Roles</span>, Success &amp; Risks</div>
+    <span class="anim tag" data-delay="0" style="background:rgba(0,184,148,0.15);color:#00b894;margin-top:4px;">Manager Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">Who owns what &mdash; and how to know the prototype worked</div>
+
+  <div class="two-col" style="flex:1;align-items:start;gap:22px;">
+    <div>
+      <div class="anim" data-delay="2">
+        <div class="section-label accent">Roles</div>
+
+        <!-- Role flow -->
+        <div style="display:flex;flex-direction:column;gap:0;">
+
+          <!-- Project Manager -->
+          <div style="background:#0e0e20;border:1px solid #00b89430;border-radius:10px;padding:10px 14px;display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(0,184,148,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">&#x1F9ED;</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;color:#00b894;margin-bottom:4px;">Project Manager</div>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#00b894;flex-shrink:0;">▸</span> Owns the brief and is accountable for its <strong style="color:#e0e0f0;">completeness</strong></div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#00b894;flex-shrink:0;">▸</span> Secures <strong style="color:#e0e0f0;">data and environment access</strong> before implementation starts</div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#00b894;flex-shrink:0;">▸</span> Structures and tracks <strong style="color:#e0e0f0;">delivery work</strong>; reviews prototype before the customer sees it</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Arrow -->
+          <div style="display:flex;align-items:center;gap:8px;padding:1px 14px;">
+            <div style="width:1px;height:6px;background:#00b89430;margin-left:16px;"></div>
+          </div>
+
+          <!-- Account Manager -->
+          <div style="background:#0e0e20;border:1px solid #00b89430;border-radius:10px;padding:10px 14px;display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(0,184,148,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">&#x1F4BC;</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;color:#00b894;margin-bottom:4px;">Account Manager</div>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#00b894;flex-shrink:0;">▸</span> Owns the <strong style="color:#e0e0f0;">commercial relationship</strong>; ensures scope is reasonable for the budget</div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#00b894;flex-shrink:0;">▸</span> Aligns stakeholders on <strong style="color:#e0e0f0;">scope and success criteria</strong></div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#00b894;flex-shrink:0;">▸</span> When things go wrong &mdash; <strong style="color:#e0e0f0;">resets expectations</strong> with the customer</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Arrow + label -->
+          <div style="display:flex;align-items:center;gap:8px;padding:3px 14px;">
+            <div style="width:1px;height:18px;background:linear-gradient(#00b89450,#a29bfe50);margin-left:16px;"></div>
+            <div style="font-size:10px;color:#4a4a6a;font-style:italic;white-space:nowrap;">hands off brief &rarr;</div>
+          </div>
+
+          <!-- Architect -->
+          <div style="background:#0e0e20;border:1px solid #a29bfe30;border-radius:10px;padding:10px 14px;display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(162,155,254,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">&#x1F3DB;&#xFE0F;</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;color:#a29bfe;margin-bottom:4px;">Architect</div>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#a29bfe;flex-shrink:0;">▸</span> Translates brief into a <strong style="color:#e0e0f0;">concrete technical plan</strong></div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#a29bfe;flex-shrink:0;">▸</span> Selects the <strong style="color:#e0e0f0;">prototype pattern</strong> and key design decisions</div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#a29bfe;flex-shrink:0;">▸</span> Flags <strong style="color:#e0e0f0;">infeasible requirements</strong> before a line of code is written</div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#a29bfe;flex-shrink:0;">▸</span> Reviews and unblocks engineer <strong style="color:#e0e0f0;">mid-build</strong></div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#a29bfe;flex-shrink:0;">▸</span> Ensures the demo is <strong style="color:#e0e0f0;">technically credible</strong>, not just "working"</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Arrow + label -->
+          <div style="display:flex;align-items:center;gap:8px;padding:3px 14px;">
+            <div style="width:1px;height:18px;background:linear-gradient(#a29bfe50,#fdcb6e50);margin-left:16px;"></div>
+            <div style="font-size:10px;color:#4a4a6a;font-style:italic;white-space:nowrap;">technical plan &rarr;</div>
+          </div>
+
+          <!-- Engineer -->
+          <div style="background:#0e0e20;border:1px solid #fdcb6e30;border-radius:10px;padding:10px 14px;display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(253,203,110,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">&#x2699;&#xFE0F;</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;color:#fdcb6e;margin-bottom:4px;">Engineer</div>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#fdcb6e;flex-shrink:0;">▸</span> Confirms full understanding of the brief <strong style="color:#e0e0f0;">before writing any code</strong></div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#fdcb6e;flex-shrink:0;">▸</span> Uses AI coding tools; <strong style="color:#e0e0f0;">reviews all AI output</strong> — does not ship unreviewed code</div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#fdcb6e;flex-shrink:0;">▸</span> Raises scope questions to architect or manager — <strong style="color:#e0e0f0;">no unilateral decisions</strong></div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#fdcb6e;flex-shrink:0;">▸</span> Validates result against <strong style="color:#e0e0f0;">success criteria</strong> before declaring done</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Arrow + label -->
+          <div style="display:flex;align-items:center;gap:8px;padding:3px 14px;">
+            <div style="width:1px;height:18px;background:linear-gradient(#fdcb6e50,#74b9ff50);margin-left:16px;"></div>
+            <div style="font-size:10px;color:#4a4a6a;font-style:italic;white-space:nowrap;">demo &rarr;</div>
+          </div>
+
+          <!-- Customer -->
+          <div style="background:#0e0e20;border:1px solid #74b9ff30;border-radius:10px;padding:10px 14px;display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(116,185,255,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">&#x1F4BC;</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;color:#74b9ff;margin-bottom:4px;">Customer / Business</div>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#74b9ff;flex-shrink:0;">▸</span> Confirms the <strong style="color:#e0e0f0;">business case</strong> and agrees on success criteria</div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#74b9ff;flex-shrink:0;">▸</span> Provides or arranges <strong style="color:#e0e0f0;">data access</strong></div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#74b9ff;flex-shrink:0;">▸</span> Participates in <strong style="color:#e0e0f0;">pre-build review</strong> to validate direction</div>
+                <div style="font-size:12px;color:#a0a0b8;line-height:1.4;display:flex;gap:6px;"><span style="color:#74b9ff;flex-shrink:0;">▸</span> Evaluates the result and <strong style="color:#e0e0f0;">decides next step</strong></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="anim" data-delay="3">
+        <div class="section-label accent-green">Definition of Success</div>
+        <div style="background:#0e0e20;border:1px solid #00b89430;border-radius:10px;padding:14px;">
+          <div style="background:#0c1a12;border:1px solid #00b89440;border-radius:8px;padding:11px 14px;margin-bottom:10px;">
+            <div style="font-size:14px;font-weight:700;color:#00b894;line-height:1.5;">The customer is willing to consider project continuation.</div>
+            <div style="font-size:12px;color:#6c6c80;margin-top:4px;line-height:1.5;">They want to discuss the next stage &mdash; MVP, timeline, investment.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px;">
+            <div style="display:flex;gap:8px;font-size:13px;color:#a0a0b8;"><span style="color:#00b894;flex-shrink:0;">&#x2714;</span> Demo works end-to-end, runs on real data</div>
+            <div style="display:flex;gap:8px;font-size:13px;color:#a0a0b8;"><span style="color:#00b894;flex-shrink:0;">&#x2714;</span> Customer champion can show it internally to justify further investment</div>
+            <div style="display:flex;gap:8px;font-size:13px;color:#a0a0b8;"><span style="color:#00b894;flex-shrink:0;">&#x2714;</span> Customer can estimate ROI: value vs. effort and cost</div>
+          </div>
+          <div style="border-top:1px solid #2a2a4a;padding-top:10px;">
+            <div style="font-size:12px;color:#6c6c80;margin-bottom:5px;font-weight:700;">NOT a failure if:</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="font-size:12px;color:#6c6c80;">&#x2022; Doesn&rsquo;t handle every edge case or isn&rsquo;t production-ready</div>
+              <div style="font-size:12px;color:#6c6c80;">&#x2022; Continuation didn&rsquo;t happen &mdash; budget, priorities, or economics may have changed</div>
+              <div style="font-size:12px;color:#6c6c80;">&#x2022; Customer learned what they need &mdash; even if the answer was &ldquo;not this&rdquo;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="anim" data-delay="4" style="margin-top:12px;">
+        <div class="section-label accent-red">Key Risks</div>
+        <table class="rtable">
+          <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+          <tbody>
+            <tr><td>Data access blocked</td><td>Secure path before impl &mdash; treat as blocker</td></tr>
+            <tr><td>Success criteria undefined</td><td>Define explicitly; vague = endless revisions</td></tr>
+            <tr><td>Scope creep</td><td>Define out-of-scope explicitly; changes require sign-off</td></tr>
+            <tr><td>Environment delays</td><td>Start provisioning early, parallel with requirements</td></tr>
+            <tr><td>AI code wrong assumptions</td><td>Budget time for human review and correction</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MANAGER TRACK — SLIDE 10                   -->
+<!-- How to Initiate + Anti-Patterns            -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="10" data-track="manager">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0">Starting Implementation &amp; <span class="accent-red">Avoiding Mistakes</span></div>
+    <span class="anim tag" data-delay="0" style="background:rgba(0,184,148,0.15);color:#00b894;margin-top:4px;">Manager Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">What the handoff brief must contain &mdash; and what commonly goes wrong</div>
+
+  <div class="two-col" style="flex:1;align-items:start;gap:22px;">
+    <div class="anim" data-delay="2">
+      <div class="section-label accent-green">The Handoff Brief</div>
+      <div style="font-size:12px;color:#6c6c80;margin-bottom:10px;">When ready, hand the brief to the engineer <strong style="color:#e0e0f0;">in writing</strong>. It must include:</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="flow-step" style="border-color:#00b89430;">
+          <div class="step-num" style="background:#00b894;color:#0a0a23;">1</div>
+          <div style="font-size:12px;color:#a0a0b8;">The <strong style="color:#e0e0f0;">business case</strong> (1&ndash;2 sentences)</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;">
+          <div class="step-num" style="background:#00b894;color:#0a0a23;">2</div>
+          <div style="font-size:12px;color:#a0a0b8;">The <strong style="color:#e0e0f0;">demo scenario</strong> (step-by-step walkthrough of what will be shown)</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;">
+          <div class="step-num" style="background:#00b894;color:#0a0a23;">3</div>
+          <div style="font-size:12px;color:#a0a0b8;"><strong style="color:#e0e0f0;">Data description</strong> and access method</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;">
+          <div class="step-num" style="background:#00b894;color:#0a0a23;">4</div>
+          <div style="font-size:12px;color:#a0a0b8;"><strong style="color:#e0e0f0;">Target environment</strong> and available services</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;">
+          <div class="step-num" style="background:#00b894;color:#0a0a23;">5</div>
+          <div style="font-size:12px;color:#a0a0b8;"><strong style="color:#e0e0f0;">Measurable success criteria</strong> agreed in advance</div>
+        </div>
+        <div class="flow-step" style="border-color:#00b89430;">
+          <div class="step-num" style="background:#00b894;color:#0a0a23;">6</div>
+          <div style="font-size:12px;color:#a0a0b8;"><strong style="color:#e0e0f0;">Scope exclusions / non-goals</strong> &mdash; what is explicitly out</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;background:#12122a;border:1px solid #fdcb6e30;border-radius:8px;padding:10px 14px;font-size:12px;color:#fdcb6e;">
+        &#x1F4A1; A good brief takes an hour or two to produce. It saves days of rework.
+      </div>
+    </div>
+
+    <div class="anim" data-delay="3">
+      <div class="section-label accent-red">Common Anti-Patterns</div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #e17055;">
+          <span style="color:#e17055;flex-shrink:0;font-size:14px;">&#x274C;</span>
+          <div style="font-size:12px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Starting before the data question is answered</strong> &mdash; prototypes built on placeholder data often need to be substantially rebuilt when real data arrives</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #e17055;">
+          <span style="color:#e17055;flex-shrink:0;font-size:14px;">&#x274C;</span>
+          <div style="font-size:12px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">No success criteria before building</strong> &mdash; without &ldquo;done,&rdquo; every demo becomes a negotiation</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #e17055;">
+          <span style="color:#e17055;flex-shrink:0;font-size:14px;">&#x274C;</span>
+          <div style="font-size:12px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Asking the engineer to figure out requirements as they go</strong> &mdash; produces an impressive thing that answers the wrong question</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #e17055;">
+          <span style="color:#e17055;flex-shrink:0;font-size:14px;">&#x274C;</span>
+          <div style="font-size:12px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Treating the prototype as the start of a production system</strong> &mdash; leads to technical debt and broken expectations</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #e17055;">
+          <span style="color:#e17055;flex-shrink:0;font-size:14px;">&#x274C;</span>
+          <div style="font-size:12px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Overclaiming what the prototype proves</strong> &mdash; a prototype on curated data does not prove production viability</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #e17055;">
+          <span style="color:#e17055;flex-shrink:0;font-size:14px;">&#x274C;</span>
+          <div style="font-size:12px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e0e0f0;">Skipping manager review before the demo</strong> &mdash; surprises at demo time are avoidable</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MANAGER TRACK — SLIDE 11                   -->
+<!-- Good Output                                -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="11" data-track="manager">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0">What <span class="accent-green">Good Output</span> Looks Like</div>
+    <span class="anim tag" data-delay="0" style="background:rgba(0,184,148,0.15);color:#00b894;margin-top:4px;">Manager Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">The prototype must help the customer decide: is this worth continuing? Here is what to check before showing it.</div>
+
+  <div style="flex:1;display:flex;flex-direction:column;gap:10px;min-height:0;">
+
+    <!-- TOP: two columns of main content -->
+    <div style="display:flex;gap:20px;align-items:start;">
+
+      <!-- LEFT: A Good Prototype checklist -->
+      <div class="anim" data-delay="2" style="flex:1;min-width:0;">
+        <div class="section-label accent-green">A Good Prototype&hellip;</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:10px;align-items:center;padding:8px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #00b894;">
+            <span style="color:#00b894;flex-shrink:0;font-size:16px;">&#x2714;</span>
+            <div style="font-size:12px;color:#a0a0b8;line-height:1.4;">Runs <strong style="color:#e0e0f0;">end-to-end without crashing</strong> under normal demo conditions</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;padding:8px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #00b894;">
+            <span style="color:#00b894;flex-shrink:0;font-size:16px;">&#x2714;</span>
+            <div style="font-size:12px;color:#a0a0b8;line-height:1.4;">Demonstrates <strong style="color:#e0e0f0;">the specific agreed scenario</strong> — not a different one</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;padding:8px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #00b894;">
+            <span style="color:#00b894;flex-shrink:0;font-size:16px;">&#x2714;</span>
+            <div style="font-size:12px;color:#a0a0b8;line-height:1.4;">Uses <strong style="color:#e0e0f0;">real or agreed representative data</strong>, not synthetic placeholders</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;padding:8px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #00b894;">
+            <span style="color:#00b894;flex-shrink:0;font-size:16px;">&#x2714;</span>
+            <div style="font-size:12px;color:#a0a0b8;line-height:1.4;">Output is <strong style="color:#e0e0f0;">readable by the business audience</strong> without explanation</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;padding:8px 12px;background:#0e0e20;border-radius:8px;border-left:3px solid #00b894;">
+            <span style="color:#00b894;flex-shrink:0;font-size:16px;">&#x2714;</span>
+            <div style="font-size:12px;color:#a0a0b8;line-height:1.4;">Can be <strong style="color:#e0e0f0;">restarted cleanly</strong> if something goes wrong</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Pre-Demo Checklist + Does NOT need to -->
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px;">
+        <div class="anim" data-delay="3">
+          <div class="section-label accent">Manager Pre-Demo Checklist</div>
+          <div style="background:#0e0e20;border:1px solid #2a2a4a;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:5px;">
+            <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 10px;border-radius:6px;background:#12122a;">
+              <span style="width:16px;height:16px;border:1px solid #00b894;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#00b894;flex-shrink:0;">&#x2714;</span>
+              You have watched it run end-to-end
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 10px;border-radius:6px;background:#12122a;">
+              <span style="width:16px;height:16px;border:1px solid #00b894;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#00b894;flex-shrink:0;">&#x2714;</span>
+              It matches the agreed demo scenario
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 10px;border-radius:6px;background:#12122a;">
+              <span style="width:16px;height:16px;border:1px solid #00b894;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#00b894;flex-shrink:0;">&#x2714;</span>
+              It uses the actual agreed data (not test data)
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 10px;border-radius:6px;background:#12122a;">
+              <span style="width:16px;height:16px;border:1px solid #00b894;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#00b894;flex-shrink:0;">&#x2714;</span>
+              Presenter knows how to restart if something fails
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 10px;border-radius:6px;background:#12122a;">
+              <span style="width:16px;height:16px;border:1px solid #00b894;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#00b894;flex-shrink:0;">&#x2714;</span>
+              Output is meaningful to the demo audience
+            </div>
+          </div>
+        </div>
+
+        <div class="anim" data-delay="4">
+          <div class="section-label" style="color:#6c6c80;">Does NOT need to&hellip;</div>
+          <div style="background:#0e0e20;border-radius:10px;padding:9px 14px;display:flex;flex-direction:column;gap:4px;">
+            <div style="font-size:11px;color:#6c6c80;display:flex;gap:8px;align-items:center;"><span style="color:#3a3a5a;font-size:12px;">&#x2715;</span> Handle every edge case</div>
+            <div style="font-size:11px;color:#6c6c80;display:flex;gap:8px;align-items:center;"><span style="color:#3a3a5a;font-size:12px;">&#x2715;</span> Have polished UI design</div>
+            <div style="font-size:11px;color:#6c6c80;display:flex;gap:8px;align-items:center;"><span style="color:#3a3a5a;font-size:12px;">&#x2715;</span> Include logging, auth, or security hardening</div>
+            <div style="font-size:11px;color:#6c6c80;display:flex;gap:8px;align-items:center;"><span style="color:#3a3a5a;font-size:12px;">&#x2715;</span> Scale to production volumes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM: compact mock UI -->
+    <div class="anim" data-delay="4" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:0;">
+      <div style="font-size:9px;font-weight:700;color:#3a3a5a;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;">Example — what a prototype output actually looks like</div>
+      <div style="background:#07071a;border:1px solid #1a1a34;border-radius:10px;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0;">
+        <!-- Window chrome -->
+        <div style="background:#0d0d24;padding:5px 12px;border-bottom:1px solid #1a1a34;display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          <div style="width:7px;height:7px;border-radius:50%;background:#e17055;opacity:.6;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:#fdcb6e;opacity:.6;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:#00b894;opacity:.6;"></div>
+          <div style="margin-left:8px;font-size:9px;color:#3a3a5a;font-family:monospace;">Safety Incident Search — POC v0.3</div>
+        </div>
+        <!-- Query + results in one row -->
+        <div style="display:flex;gap:0;flex:1;min-height:0;overflow:hidden;">
+          <!-- Query pane -->
+          <div style="padding:8px 12px;border-right:1px solid #1a1a34;flex-shrink:0;width:260px;display:flex;flex-direction:column;gap:6px;">
+            <div style="background:#12122a;border:1px solid #2a2a4a;border-radius:6px;padding:5px 9px;display:flex;align-items:center;gap:7px;">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="#6c6c80" stroke-width="1.3"/><path d="M9.5 9.5l2.5 2.5" stroke="#6c6c80" stroke-width="1.3" stroke-linecap="round"/></svg>
+              <span style="font-size:9px;color:#a0a0b8;font-family:monospace;">electrical panel near water</span>
+            </div>
+            <div style="font-size:9px;color:#3a3a5a;font-family:monospace;">Found <span style="color:#a29bfe;">3 results</span> · 0.8s</div>
+            <div style="font-size:9px;color:#6c6c80;">Source: <span style="font-family:monospace;color:#4a4a6a;">safety_incidents_2019-2024.csv</span></div>
+          </div>
+          <!-- Results pane -->
+          <div style="padding:8px 12px;display:flex;flex-direction:column;gap:5px;flex:1;overflow:hidden;">
+            <div style="background:#0e0e20;border:1px solid #e1705530;border-radius:6px;padding:6px 9px;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                <span style="font-size:8px;font-weight:700;background:#e17055;color:#fff;padding:1px 5px;border-radius:2px;">HIGH</span>
+                <span style="font-size:9px;font-weight:700;color:#e0e0f0;font-family:monospace;">INC-2023-0847</span>
+                <span style="font-size:9px;color:#4a4a6a;margin-left:auto;">0.94</span>
+              </div>
+              <div style="font-size:9px;color:#a0a0b8;line-height:1.4;">"Exposed panel junction box within 60cm of drainage outlet. Area evacuated."</div>
+            </div>
+            <div style="background:#0e0e20;border:1px solid #fdcb6e20;border-radius:6px;padding:6px 9px;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                <span style="font-size:8px;font-weight:700;background:#fdcb6e;color:#0a0a23;padding:1px 5px;border-radius:2px;">MED</span>
+                <span style="font-size:9px;font-weight:700;color:#e0e0f0;font-family:monospace;">INC-2022-1203</span>
+                <span style="font-size:9px;color:#4a4a6a;margin-left:auto;">0.81</span>
+              </div>
+              <div style="font-size:9px;color:#a0a0b8;line-height:1.4;">"Panel proximity to HVAC drain flagged. Insulation intact, corrective work scheduled."</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- End callout -->
+    <div class="anim" data-delay="5">
+      <div class="callout" style="background:#12122a;border:2px solid #74b9ff30;">
+        <div class="callout-shimmer"></div>
+        <div style="position:relative;font-size:12px;color:#a0a0b8;line-height:1.6;">
+          <strong style="color:#74b9ff;">End of Manager Guide.</strong> If you are also the engineer, or want to understand what happens next, open the Engineer Guide guide from the start (slide 4).
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- IMPL TRACK — SLIDE 12                      -->
+<!-- Preconditions                              -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="12" data-track="impl">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0">Before You Write <span class="accent-yellow">Any Code</span></div>
+    <span class="anim tag" data-delay="0" style="background:rgba(253,203,110,0.15);color:#fdcb6e;margin-top:4px;">Engineer Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">Your job: build a demo that helps the customer decide whether to invest further. Missing any of these inputs means you are not ready &mdash; stop and ask the manager.</div>
+
+  <div class="two-col" style="flex:1;align-items:start;gap:22px;">
+    <div class="anim" data-delay="2">
+      <div class="section-label accent-yellow">Preconditions Checklist</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:#0e0e20;border-radius:8px;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">&#x25A1;</span>
+          <div>Written <strong style="color:#e0e0f0;">problem statement</strong> (1&ndash;2 sentences), confirmed by manager</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:#0e0e20;border-radius:8px;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">&#x25A1;</span>
+          <div>Described <strong style="color:#e0e0f0;">demo scenario</strong>: what user does, step by step</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:#0e0e20;border-radius:8px;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">&#x25A1;</span>
+          <div><strong style="color:#e0e0f0;">Data description</strong>: what it is, where, format, how to access</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:#0e0e20;border-radius:8px;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <span style="width:16px;height:16px;border:1px solid #e17055;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;color:#e17055;">&#x25A1;</span>
+          <div><strong style="color:#e17055;">Data access confirmed</strong> &mdash; or a clear and imminent path to it (most common blocker)</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:#0e0e20;border-radius:8px;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">&#x25A1;</span>
+          <div><strong style="color:#e0e0f0;">Target environment</strong> defined (Azure subscription, local, which services)</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:#0e0e20;border-radius:8px;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">&#x25A1;</span>
+          <div><strong style="color:#e0e0f0;">Success criteria</strong>: what &ldquo;good enough&rdquo; looks like for this prototype</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:#0e0e20;border-radius:8px;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">&#x25A1;</span>
+          <div>Known <strong style="color:#e0e0f0;">scope boundary</strong>: what is explicitly out of scope</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anim" data-delay="3">
+      <div class="section-label accent-yellow">Minimum Input Package</div>
+      <table class="rtable">
+        <thead><tr><th>Input</th><th>What It Must Contain</th></tr></thead>
+        <tbody>
+          <tr><td>Business question</td><td>1&ndash;2 sentences: what the prototype must demonstrate or answer</td></tr>
+          <tr><td>Demo flow</td><td>Step-by-step: who does what, what system does, what audience sees</td></tr>
+          <tr><td>Data description</td><td>What, where, format, how to access it</td></tr>
+          <tr><td>Environment</td><td>Where it runs, which services are available</td></tr>
+          <tr><td>Success criteria</td><td>How you will know when it is good enough</td></tr>
+          <tr><td>Scope boundary</td><td>What the prototype does NOT need to do</td></tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:14px;" class="callout" style="background:#12122a;border:2px solid #e1705540;">
+        <div class="callout-shimmer"></div>
+        <div style="position:relative;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <strong style="color:#e17055;">If the brief is missing anything:</strong> do not start. Have a conversation with the manager to fill the gaps. Every hour spent building on an unclear basis risks rework.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- IMPL TRACK — SLIDE 13                      -->
+<!-- Steps 1–4: Understand Before Coding        -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="13" data-track="impl">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;">
+    <div class="slide-title anim" data-delay="0">Understand Before You <span class="accent-yellow">Build</span></div>
+    <span class="anim tag" data-delay="0" style="background:rgba(253,203,110,0.15);color:#fdcb6e;margin-top:4px;">Engineer Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">Steps 1&ndash;4 &mdash; all before writing a single line of code</div>
+
+  <div class="two-col" style="flex:1;gap:14px;">
+
+    <!-- STEP 1: Business Case -->
+    <div class="anim" data-delay="2" style="background:#0e0e20;border:1px solid #74b9ff30;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:#74b9ff;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">1</div>
+        <div style="font-size:14px;font-weight:700;color:#74b9ff;">Understand the Business Case</div>
+      </div>
+      <!-- Visual: vague → one sentence -->
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#1a0a0a;border:1px solid #e1705540;border-radius:8px;padding:10px 12px;position:relative;">
+          <div style="position:absolute;top:7px;right:9px;font-size:14px;">&#x274C;</div>
+          <div style="font-size:10px;color:#e17055;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">Before clarifying</div>
+          <div style="font-size:11px;color:#5a4040;font-style:italic;line-height:1.5;">"We want to leverage AI to help our engineers access historical safety data, improve efficiency, and surface relevant records in an intuitive way…"</div>
+        </div>
+        <div style="text-align:center;color:#4a5a6a;font-size:18px;">&#x2193;</div>
+        <div style="background:#0a1a0a;border:1px solid #00b89450;border-radius:8px;padding:10px 12px;position:relative;">
+          <div style="position:absolute;top:7px;right:9px;font-size:14px;">&#x2705;</div>
+          <div style="font-size:10px;color:#00b894;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">One sentence — confirmed</div>
+          <div style="font-size:12px;color:#a0c0a0;line-height:1.5;">"Can AI surface relevant past safety incidents when a field engineer describes a new situation?"</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#4a4a6a;line-height:1.4;">If you cannot summarize it in one sentence, you do not understand it well enough to build yet.</div>
+    </div>
+
+    <!-- STEP 2: Map Demo Flow -->
+    <div class="anim" data-delay="3" style="background:#0e0e20;border:1px solid #a29bfe30;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:#a29bfe;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">2</div>
+        <div style="font-size:14px;font-weight:700;color:#a29bfe;">Map the Demo Flow</div>
+      </div>
+      <!-- Flow diagram -->
+      <div style="display:flex;align-items:stretch;gap:0;">
+        <div style="flex:1;background:#12122a;border:1px solid #a29bfe30;border-radius:8px 0 0 8px;padding:10px 8px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:4px;">&#x1F4AC;</div>
+          <div style="font-size:10px;font-weight:700;color:#a29bfe;">User input</div>
+          <div style="font-size:10px;color:#4a4a6a;margin-top:3px;line-height:1.3;">What do they ask or do?</div>
+        </div>
+        <div style="display:flex;align-items:center;color:#3a3a5a;font-size:14px;padding:0 2px;">&#x25B6;</div>
+        <div style="flex:1;background:#12122a;border-top:1px solid #a29bfe30;border-bottom:1px solid #a29bfe30;padding:10px 8px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:4px;">&#x2699;&#xFE0F;</div>
+          <div style="font-size:10px;font-weight:700;color:#a29bfe;">System</div>
+          <div style="font-size:10px;color:#4a4a6a;margin-top:3px;line-height:1.3;">What happens under the hood?</div>
+        </div>
+        <div style="display:flex;align-items:center;color:#3a3a5a;font-size:14px;padding:0 2px;">&#x25B6;</div>
+        <div style="flex:1;background:#12122a;border-top:1px solid #a29bfe30;border-bottom:1px solid #a29bfe30;padding:10px 8px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:4px;">&#x1F4CA;</div>
+          <div style="font-size:10px;font-weight:700;color:#a29bfe;">Output</div>
+          <div style="font-size:10px;color:#4a4a6a;margin-top:3px;line-height:1.3;">What does the user see?</div>
+        </div>
+        <div style="display:flex;align-items:center;color:#3a3a5a;font-size:14px;padding:0 2px;">&#x25B6;</div>
+        <div style="flex:1;background:#1a0e2a;border:1px solid #fdcb6e50;border-radius:0 8px 8px 0;padding:10px 8px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:4px;">&#x2B50;</div>
+          <div style="font-size:10px;font-weight:700;color:#fdcb6e;">Wow moment</div>
+          <div style="font-size:10px;color:#4a4a6a;margin-top:3px;line-height:1.3;">When does value land?</div>
+        </div>
+      </div>
+      <div style="background:#12122a;border:1px solid #a29bfe20;border-radius:7px;padding:8px 12px;font-size:11px;color:#6c6c80;line-height:1.4;"><strong style="color:#a29bfe;">This flow is your acceptance test.</strong> Every implementation decision should trace back to it.</div>
+    </div>
+
+    <!-- STEP 3: Understand the Data -->
+    <div class="anim" data-delay="4" style="background:#0e0e20;border:1px solid #fdcb6e30;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:#fdcb6e;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">3</div>
+        <div style="font-size:14px;font-weight:700;color:#fdcb6e;">Understand the Data</div>
+      </div>
+      <!-- Checklist grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+        <div style="display:flex;gap:7px;align-items:center;background:#12122a;border-radius:7px;padding:7px 9px;">
+          <span style="font-size:14px;">&#x1F4CD;</span><span style="font-size:11px;color:#a0a0b8;">Where does it live?</span>
+        </div>
+        <div style="display:flex;gap:7px;align-items:center;background:#12122a;border-radius:7px;padding:7px 9px;">
+          <span style="font-size:14px;">&#x1F4C1;</span><span style="font-size:11px;color:#a0a0b8;">What format?</span>
+        </div>
+        <div style="display:flex;gap:7px;align-items:center;background:#12122a;border-radius:7px;padding:7px 9px;">
+          <span style="font-size:14px;">&#x1F50D;</span><span style="font-size:11px;color:#a0a0b8;">Quality &amp; gaps?</span>
+        </div>
+        <div style="display:flex;gap:7px;align-items:center;background:#12122a;border-radius:7px;padding:7px 9px;">
+          <span style="font-size:14px;">&#x1F511;</span><span style="font-size:11px;color:#a0a0b8;">Access secured?</span>
+        </div>
+        <div style="display:flex;gap:7px;align-items:center;background:#12122a;border-radius:7px;padding:7px 9px;">
+          <span style="font-size:14px;">&#x1F4E6;</span><span style="font-size:11px;color:#a0a0b8;">Sample available?</span>
+        </div>
+        <div style="display:flex;gap:7px;align-items:center;background:#12122a;border-radius:7px;padding:7px 9px;">
+          <span style="font-size:14px;">&#x1F512;</span><span style="font-size:11px;color:#a0a0b8;">Any restrictions?</span>
+        </div>
+      </div>
+      <!-- Timeline warning -->
+      <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid #2a2a3a;">
+        <div style="flex:1;background:#0a1a0a;padding:8px 10px;text-align:center;">
+          <div style="font-size:11px;color:#00b894;font-weight:700;">Day 1</div>
+          <div style="font-size:10px;color:#4a6a4a;margin-top:2px;">Found &amp; fixed</div>
+        </div>
+        <div style="width:1px;background:#2a2a3a;"></div>
+        <div style="flex:3;background:#12122a;padding:8px 10px;display:flex;align-items:center;">
+          <div style="flex:1;height:4px;background:linear-gradient(90deg,#00b894,#fdcb6e,#e17055);border-radius:2px;"></div>
+        </div>
+        <div style="width:1px;background:#2a2a3a;"></div>
+        <div style="flex:1;background:#1a0a0a;padding:8px 10px;text-align:center;">
+          <div style="font-size:11px;color:#e17055;font-weight:700;">Demo day</div>
+          <div style="font-size:10px;color:#6a3a3a;margin-top:2px;">Disaster</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Identify the Pattern -->
+    <div class="anim" data-delay="5" style="background:#0e0e20;border:1px solid #00b89430;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:#00b894;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">4</div>
+        <div style="font-size:14px;font-weight:700;color:#00b894;">Identify the Pattern</div>
+      </div>
+      <!-- 6 pattern mini-cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;">
+        <div style="background:#12122a;border:1px solid #74b9ff25;border-radius:7px;padding:7px 8px;">
+          <div style="font-size:15px;margin-bottom:3px;">&#x1F4C4;</div>
+          <div style="font-size:10px;font-weight:700;color:#74b9ff;margin-bottom:2px;">RAG</div>
+          <div style="font-size:9px;color:#4a4a6a;line-height:1.3;">AI Search + OpenAI</div>
+        </div>
+        <div style="background:#12122a;border:1px solid #a29bfe25;border-radius:7px;padding:7px 8px;">
+          <div style="font-size:15px;margin-bottom:3px;">&#x1F4CA;</div>
+          <div style="font-size:10px;font-weight:700;color:#a29bfe;margin-bottom:2px;">Data Analysis</div>
+          <div style="font-size:9px;color:#4a4a6a;line-height:1.3;">PostgreSQL + pgvector</div>
+        </div>
+        <div style="background:#12122a;border:1px solid #81ecec25;border-radius:7px;padding:7px 8px;">
+          <div style="font-size:15px;margin-bottom:3px;">&#x1F5A8;&#xFE0F;</div>
+          <div style="font-size:10px;font-weight:700;color:#81ecec;margin-bottom:2px;">OCR</div>
+          <div style="font-size:9px;color:#4a4a6a;line-height:1.3;">Document Intelligence</div>
+        </div>
+        <div style="background:#12122a;border:1px solid #fdcb6e25;border-radius:7px;padding:7px 8px;">
+          <div style="font-size:15px;margin-bottom:3px;">&#x2699;&#xFE0F;</div>
+          <div style="font-size:10px;font-weight:700;color:#fdcb6e;margin-bottom:2px;">Automation</div>
+          <div style="font-size:9px;color:#4a4a6a;line-height:1.3;">AKS + OpenAI</div>
+        </div>
+        <div style="background:#12122a;border:1px solid #fd79a825;border-radius:7px;padding:7px 8px;">
+          <div style="font-size:15px;margin-bottom:3px;">&#x1F4AC;</div>
+          <div style="font-size:10px;font-weight:700;color:#fd79a8;margin-bottom:2px;">Conversational</div>
+          <div style="font-size:9px;color:#4a4a6a;line-height:1.3;">AI Search + AKS</div>
+        </div>
+        <div style="background:#12122a;border:1px solid #00b89425;border-radius:7px;padding:7px 8px;">
+          <div style="font-size:15px;margin-bottom:3px;">&#x1F916;</div>
+          <div style="font-size:10px;font-weight:700;color:#00b894;margin-bottom:2px;">Agent</div>
+          <div style="font-size:9px;color:#4a4a6a;line-height:1.3;">Claude Code CLI + AKS</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#4a4a6a;line-height:1.4;">No exact match needed — enough to know what you're building and where the main risks are.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- IMPL TRACK — SLIDE 14                      -->
+<!-- Steps 5–6: Brief + AI Plan                 -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="14" data-track="impl">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;">
+    <div class="slide-title anim" data-delay="0">Write the Brief, Then Use <span class="accent-yellow">AI</span></div>
+    <span class="anim tag" data-delay="0" style="background:rgba(253,203,110,0.15);color:#fdcb6e;margin-top:4px;">Engineer Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">Steps 5&ndash;6 &mdash; give Claude Code everything it needs to ask the right questions</div>
+
+  <!-- TOP ROW: Brief + Context Folders -->
+  <div style="display:flex;gap:18px;margin-bottom:14px;">
+
+    <!-- Step 5: Write Brief -->
+    <div class="anim" data-delay="2" style="flex:1;background:#12122a;border:1px solid #fdcb6e30;border-radius:12px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div style="width:24px;height:24px;border-radius:50%;background:#fdcb6e;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">5</div>
+        <div style="font-size:13px;font-weight:700;color:#fdcb6e;">Write Your Implementation Brief</div>
+      </div>
+      <div style="font-size:11px;color:#6c6c80;margin-bottom:8px;line-height:1.5;">Your <strong style="color:#e0e0f0;">technical synthesis</strong> of everything you now know — not the manager's brief.</div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;padding:5px 8px;background:#0c0c1e;border-radius:6px;"><span style="color:#fdcb6e;">&#x25CF;</span>What the prototype must do (implementation terms)</div>
+        <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;padding:5px 8px;background:#0c0c1e;border-radius:6px;"><span style="color:#fdcb6e;">&#x25CF;</span>Data used and <strong style="color:#e0e0f0;">how to access it</strong></div>
+        <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;padding:5px 8px;background:#0c0c1e;border-radius:6px;"><span style="color:#fdcb6e;">&#x25CF;</span>Step-by-step <strong style="color:#e0e0f0;">demo flow</strong></div>
+        <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;padding:5px 8px;background:#0c0c1e;border-radius:6px;"><span style="color:#fdcb6e;">&#x25CF;</span>Environment, services, success criteria, scope</div>
+      </div>
+    </div>
+
+    <!-- Context Folders -->
+    <div class="anim" data-delay="3" style="flex:1.4;background:#12122a;border:1px solid #a29bfe30;border-radius:12px;padding:14px 16px;">
+      <div style="font-size:13px;font-weight:700;color:#a29bfe;margin-bottom:4px;">&#x1F4C2; Load Context into Claude Code</div>
+      <div style="font-size:11px;color:#6c6c80;margin-bottom:10px;">The brief is the start. The more context Claude Code has, the fewer gaps it fills with assumptions.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+
+        <div style="background:#0e0e20;border:1px solid #fdcb6e25;border-radius:8px;padding:9px 11px;">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+            <span style="font-size:16px;">&#x1F4C4;</span>
+            <div style="font-size:11px;font-weight:700;color:#fdcb6e;">brief.md</div>
+          </div>
+          <div style="font-size:10px;color:#6c6c80;line-height:1.5;">Your written brief — the primary prompt and anchor for everything Claude generates</div>
+        </div>
+
+        <div style="background:#0e0e20;border:1px solid #74b9ff25;border-radius:8px;padding:9px 11px;">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+            <span style="font-size:16px;">&#x1F3A4;</span>
+            <div style="font-size:11px;font-weight:700;color:#74b9ff;">/transcripts</div>
+          </div>
+          <div style="font-size:10px;color:#6c6c80;line-height:1.5;">Meeting transcripts with the customer — context on intent, constraints, and decisions that didn't make it into the brief</div>
+        </div>
+
+        <div style="background:#0e0e20;border:1px solid #00b89425;border-radius:8px;padding:9px 11px;">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+            <span style="font-size:16px;">&#x1F4BB;</span>
+            <div style="font-size:11px;font-weight:700;color:#00b894;">/client-code</div>
+          </div>
+          <div style="font-size:10px;color:#6c6c80;line-height:1.5;">Existing client codebase (if available) — prevents reinventing what's there, keeps patterns consistent</div>
+        </div>
+
+        <div style="background:#0e0e20;border:1px solid #81ecec25;border-radius:8px;padding:9px 11px;">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+            <span style="font-size:16px;">&#x1F4D1;</span>
+            <div style="font-size:11px;font-weight:700;color:#81ecec;">/specs</div>
+          </div>
+          <div style="font-size:10px;color:#6c6c80;line-height:1.5;">Specs, API docs, data schemas — as <strong style="color:#81ecec;">.md files</strong> so Claude can read and reference them directly</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM ROW: Clarify Skill + Plan -->
+  <div class="anim" data-delay="4" style="background:#12122a;border:1px solid #74b9ff25;border-radius:12px;padding:14px 18px;">
+    <div style="display:flex;gap:22px;align-items:stretch;">
+
+      <!-- Clarify Skill -->
+      <div style="flex:1;border-right:1px solid #2a2a4a;padding-right:22px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <div style="width:24px;height:24px;border-radius:50%;background:#74b9ff;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">6</div>
+          <div style="font-size:13px;font-weight:700;color:#74b9ff;">Activate a Clarify Skill First</div>
+        </div>
+        <div style="font-size:11px;color:#6c6c80;margin-bottom:10px;line-height:1.5;">Before asking Claude Code to generate a plan, activate a <strong style="color:#a29bfe;">superpowers-style skill</strong> that turns it from a code generator into an active collaborator.</div>
+        <!-- Terminal mockup -->
+        <div style="background:#060614;border:1px solid #2a2a4a;border-radius:8px;padding:10px 14px;font-family:monospace;">
+          <div style="font-size:10px;color:#4a4a6a;margin-bottom:6px;">$ claude code .</div>
+          <div style="font-size:11px;color:#a29bfe;margin-bottom:2px;">&gt; /clarify</div>
+          <div style="font-size:10px;color:#6c6c80;margin-bottom:8px;line-height:1.6;">
+            <span style="color:#74b9ff;">Claude:</span> I've read your brief and context folders.<br>
+            Before I plan, a few questions:<br>
+            <span style="color:#fdcb6e;">1.</span> Is the data in SharePoint live or a static export?<br>
+            <span style="color:#fdcb6e;">2.</span> Do you need multi-turn chat or single-question?<br>
+            <span style="color:#fdcb6e;">3.</span> Target Azure region for the demo environment?
+          </div>
+          <div style="font-size:10px;color:#00b894;">→ Answer these, then I'll generate the architecture plan.</div>
+        </div>
+      </div>
+
+      <!-- Then Plan -->
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:#74b9ff;margin-bottom:10px;">Then: Ask Claude Code to Plan</div>
+        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;">
+          <div style="display:flex;gap:8px;align-items:center;padding:6px 10px;background:#0c0c1e;border-radius:6px;">
+            <div style="width:18px;height:18px;border-radius:4px;background:#74b9ff;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;">A</div>
+            <div style="font-size:11px;color:#a0a0b8;">Propose an <strong style="color:#e0e0f0;">architecture</strong> for this prototype</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;padding:6px 10px;background:#0c0c1e;border-radius:6px;">
+            <div style="width:18px;height:18px;border-radius:4px;background:#74b9ff;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;">B</div>
+            <div style="font-size:11px;color:#a0a0b8;">Main <strong style="color:#e0e0f0;">components and dependencies</strong></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;padding:6px 10px;background:#0c0c1e;border-radius:6px;">
+            <div style="width:18px;height:18px;border-radius:4px;background:#74b9ff;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;">C</div>
+            <div style="font-size:11px;color:#a0a0b8;"><strong style="color:#e0e0f0;">Technical risks</strong> and unknowns</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;padding:6px 10px;background:#0c0c1e;border-radius:6px;">
+            <div style="width:18px;height:18px;border-radius:4px;background:#74b9ff;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;">D</div>
+            <div style="font-size:11px;color:#a0a0b8;"><strong style="color:#e0e0f0;">Implementation sequence</strong> — what to build first</div>
+          </div>
+        </div>
+        <div style="background:#0e0e20;border:1px solid #e1705535;border-radius:7px;padding:8px 12px;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#e17055;font-size:14px;flex-shrink:0;">&#x26A0;</span>
+          <div style="font-size:11px;color:#a0a0b8;line-height:1.5;"><strong style="color:#e17055;">Do not accept the plan blindly.</strong> AI makes assumptions. If something looks wrong, say so — iteration here is cheap.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- IMPL TRACK — SLIDE 15                      -->
+<!-- Claude Code: How It Works In Practice      -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="15" data-track="impl">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;">
+    <div class="slide-title anim" data-delay="0">How <span class="accent-yellow">Claude Code</span> Actually Works</div>
+    <span class="anim tag" data-delay="0" style="background:rgba(253,203,110,0.15);color:#fdcb6e;margin-top:4px;">Engineer Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">Not a chatbot. An autonomous agent running in your terminal — with a human in the loop.</div>
+
+  <!-- Build loop diagram -->
+  <div class="anim" data-delay="2" style="background:#0c0c1e;border:1px solid #74b9ff20;border-radius:14px;padding:16px 20px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:0;">
+      <div style="flex:1;text-align:center;background:#12122a;border:1px solid #fdcb6e30;border-radius:10px;padding:10px 8px;">
+        <div style="font-size:20px;margin-bottom:4px;">&#x1F4C2;</div>
+        <div style="font-size:11px;font-weight:700;color:#fdcb6e;">Context loaded</div>
+        <div style="font-size:10px;color:#4a4a6a;margin-top:3px;line-height:1.3;">brief.md · /transcripts<br>/specs · /client-code</div>
+      </div>
+      <div style="padding:0 6px;color:#3a3a5a;font-size:16px;">&#x25B6;</div>
+      <div style="flex:1;text-align:center;background:#12122a;border:1px solid #74b9ff30;border-radius:10px;padding:10px 8px;">
+        <div style="font-size:20px;margin-bottom:4px;">&#x1F916;</div>
+        <div style="font-size:11px;font-weight:700;color:#74b9ff;">Claude executes</div>
+        <div style="font-size:10px;color:#4a4a6a;margin-top:3px;line-height:1.3;">Reads files · writes code<br>runs tests · fixes errors</div>
+      </div>
+      <div style="padding:0 6px;color:#3a3a5a;font-size:16px;">&#x25B6;</div>
+      <div style="flex:1;text-align:center;background:#12122a;border:1px solid #a29bfe30;border-radius:10px;padding:10px 8px;">
+        <div style="font-size:20px;margin-bottom:4px;">&#x1F9D1;&#x200D;&#x1F4BB;</div>
+        <div style="font-size:11px;font-weight:700;color:#a29bfe;">Human checkpoint</div>
+        <div style="font-size:10px;color:#4a4a6a;margin-top:3px;line-height:1.3;">Review diff · test on<br>real data · approve</div>
+      </div>
+      <div style="padding:0 6px;color:#3a3a5a;font-size:16px;">&#x25B6;</div>
+      <div style="flex:1;text-align:center;background:#12122a;border:1px solid #00b89430;border-radius:10px;padding:10px 8px;">
+        <div style="font-size:20px;margin-bottom:4px;">&#x1F4AC;</div>
+        <div style="font-size:11px;font-weight:700;color:#00b894;">Iterate</div>
+        <div style="font-size:10px;color:#4a4a6a;margin-top:3px;line-height:1.3;">"The API returns 403 —<br>use env var AZURE_KEY"</div>
+      </div>
+      <div style="padding:0 6px;color:#3a3a5a;font-size:16px;transform:rotate(0deg);">&#x21BA;</div>
+    </div>
+  </div>
+
+  <!-- Two columns: autonomous vs human + guidance tips -->
+  <div style="display:flex;gap:14px;flex:1;">
+
+    <!-- What Claude does autonomously vs human -->
+    <div class="anim" data-delay="3" style="flex:1;display:flex;flex-direction:column;gap:8px;">
+      <div style="background:#0a1a0a;border:1px solid #00b89430;border-radius:10px;padding:12px 14px;">
+        <div style="font-size:12px;font-weight:700;color:#00b894;margin-bottom:8px;">&#x1F916; Claude Code does autonomously</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;align-items:center;"><span style="color:#00b894;">&#x2714;</span>Reads your entire codebase and context folders</div>
+          <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;align-items:center;"><span style="color:#00b894;">&#x2714;</span>Writes, edits, and reorganises files</div>
+          <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;align-items:center;"><span style="color:#00b894;">&#x2714;</span>Runs shell commands, tests, installs packages</div>
+          <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;align-items:center;"><span style="color:#00b894;">&#x2714;</span>Diagnoses and fixes its own errors</div>
+          <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;align-items:center;"><span style="color:#00b894;">&#x2714;</span>Searches for patterns across many files at once</div>
+        </div>
+      </div>
+      <div style="background:#1a0a0a;border:1px solid #e1705530;border-radius:10px;padding:12px 14px;">
+        <div style="font-size:12px;font-weight:700;color:#e17055;margin-bottom:8px;">&#x1F9D1;&#x200D;&#x1F4BB; Human judgment required</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;align-items:center;"><span style="color:#e17055;">&#x25CF;</span>Scope decisions — what to build and what not to</div>
+          <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;align-items:center;"><span style="color:#e17055;">&#x25CF;</span>Security review — credentials, data handling</div>
+          <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;align-items:center;"><span style="color:#e17055;">&#x25CF;</span>Test on real customer data — AI tests on samples</div>
+          <div style="display:flex;gap:7px;font-size:11px;color:#a0a0b8;align-items:center;"><span style="color:#e17055;">&#x25CF;</span>Final call: does this match the brief?</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to direct Claude Code effectively -->
+    <div class="anim" data-delay="4" style="flex:1;display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:12px;font-weight:700;color:#a29bfe;margin-bottom:2px;">How to direct it effectively</div>
+
+      <div style="background:#0e0e20;border-left:3px solid #00b894;border-radius:0 8px 8px 0;padding:9px 12px;">
+        <div style="font-size:11px;font-weight:700;color:#00b894;margin-bottom:3px;">Be specific about what's wrong</div>
+        <div style="font-family:monospace;font-size:10px;color:#6c6c80;line-height:1.5;">
+          <span style="color:#e17055;">✗</span> "it doesn't work"<br>
+          <span style="color:#00b894;">✓</span> "POST /search returns 403 — the header key name is wrong, it should be api-key not Authorization"
+        </div>
+      </div>
+
+      <div style="background:#0e0e20;border-left:3px solid #74b9ff;border-radius:0 8px 8px 0;padding:9px 12px;">
+        <div style="font-size:11px;font-weight:700;color:#74b9ff;margin-bottom:3px;">Fix and extend, don't throw away</div>
+        <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Ask Claude to fix the specific issue in existing code. Regenerating from scratch loses context and creates drift.</div>
+      </div>
+
+      <div style="background:#0e0e20;border-left:3px solid #a29bfe;border-radius:0 8px 8px 0;padding:9px 12px;">
+        <div style="font-size:11px;font-weight:700;color:#a29bfe;margin-bottom:3px;">Name the scope boundary explicitly</div>
+        <div style="font-family:monospace;font-size:10px;color:#6c6c80;line-height:1.5;">
+          <span style="color:#a29bfe;">✓</span> "Only touch the search handler. Don't change the UI or data model."
+        </div>
+      </div>
+
+      <div style="background:#0e0e20;border-left:3px solid #fdcb6e;border-radius:0 8px 8px 0;padding:9px 12px;">
+        <div style="font-size:11px;font-weight:700;color:#fdcb6e;margin-bottom:3px;">Keep secrets out of the prompt</div>
+        <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Tell Claude to use env vars or Key Vault references. Never paste real API keys into the conversation.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- IMPL TRACK — SLIDE 16                      -->
+<!-- Superpowers: What it is                    -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="16" data-track="impl">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;">
+    <div class="slide-title anim" data-delay="0"><span class="accent-purple">Superpowers</span> Skills</div>
+    <span class="anim tag" data-delay="0" style="background:rgba(253,203,110,0.15);color:#fdcb6e;margin-top:4px;">Engineer Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">Open-source plugin for Claude Code &middot; <span style="color:#a29bfe;">github.com/obra/superpowers</span></div>
+
+  <div style="display:flex;gap:18px;flex:1;">
+
+    <!-- LEFT: What it is + installation + comparison -->
+    <div class="anim" data-delay="2" style="flex:1;display:flex;flex-direction:column;gap:10px;">
+
+      <div style="font-size:13px;color:#a0a0b8;line-height:1.6;">
+        <strong style="color:#a29bfe;">Superpowers</strong> — open-source plugin for Claude Code that gives the AI agent a
+        <strong style="color:#fdcb6e;">structured development methodology</strong> instead of chaotic freestyle coding.<br>
+        <span style="color:#6c6c80;font-size:12px;">Works with Claude Code, Cursor, Codex, Gemini CLI &middot; MIT License &middot; Jesse Vincent (obra)</span>
+      </div>
+
+      <!-- Install -->
+      <div style="background:#060614;border:1px solid #2a2a4a;border-radius:10px;padding:12px 14px;font-family:monospace;">
+        <div style="font-size:10px;color:#a29bfe;font-weight:700;margin-bottom:6px;font-family:sans-serif;letter-spacing:.5px;">INSTALLATION</div>
+        <div style="font-size:11px;color:#4a4a6a;margin-bottom:2px;">Official Marketplace</div>
+        <div style="font-size:11px;color:#00b894;margin-bottom:8px;">$ /plugin install superpowers@claude-plugins-official</div>
+        <div style="font-size:11px;color:#4a4a6a;margin-bottom:2px;">Obra Marketplace</div>
+        <div style="font-size:11px;color:#74b9ff;">$ /plugin marketplace add obra/superpowers-marketplace</div>
+        <div style="font-size:11px;color:#74b9ff;">$ /plugin install superpowers@superpowers-marketplace</div>
+      </div>
+
+      <!-- Without vs With comparison -->
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;background:#1a0a0a;border:1px solid #e1705530;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:10px;font-weight:700;color:#e17055;text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;">Without Superpowers</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;height:5px;background:#e1705540;border-radius:3px;"></div><div style="font-size:10px;color:#5a3a3a;width:80px;">✗ no plan</div></div>
+            <div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;height:5px;background:#e1705540;border-radius:3px;"></div><div style="font-size:10px;color:#5a3a3a;width:80px;">✗ no tests</div></div>
+            <div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;height:5px;background:#e1705540;border-radius:3px;"></div><div style="font-size:10px;color:#5a3a3a;width:80px;">✗ no review</div></div>
+          </div>
+        </div>
+        <div style="flex:1;background:#0a1a0a;border:1px solid #00b89430;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:10px;font-weight:700;color:#00b894;text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;">With Superpowers</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;height:5px;background:#00b89470;border-radius:3px;"></div><div style="font-size:10px;color:#4a9a6a;width:80px;">brainstorm</div></div>
+            <div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;height:5px;background:#00b89470;border-radius:3px;"></div><div style="font-size:10px;color:#4a9a6a;width:80px;">plan</div></div>
+            <div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;height:5px;background:#00b89470;border-radius:3px;"></div><div style="font-size:10px;color:#4a9a6a;width:80px;">TDD</div></div>
+            <div style="display:flex;align-items:center;gap=6px;"><div style="flex:1;height:5px;background:#00b89470;border-radius:3px;margin-right:6px;"></div><div style="font-size:10px;color:#4a9a6a;width:80px;">review</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: 4 key skills -->
+    <div class="anim" data-delay="3" style="flex:1;display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:12px;font-weight:700;color:#a29bfe;margin-bottom:2px;">The idea: before writing code, the agent thinks, plans, tests, and reviews</div>
+
+      <div style="background:#0e0e20;border:1px solid #a29bfe25;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:32px;height:32px;background:#a29bfe20;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">&#x1F9E0;</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#a29bfe;margin-bottom:3px;">Brainstorming Before Code</div>
+          <div style="font-size:11px;color:#6c6c80;line-height:1.5;">Socratic dialogue: clarifies requirements, proposes alternatives. <strong style="color:#e17055;">Cannot write code until design is confirmed.</strong></div>
+        </div>
+      </div>
+
+      <div style="background:#0e0e20;border:1px solid #74b9ff25;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:32px;height:32px;background:#74b9ff20;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">&#x1F4CB;</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#74b9ff;margin-bottom:3px;">Micro-Planning</div>
+          <div style="font-size:11px;color:#6c6c80;line-height:1.5;">Task broken into 2–5 min steps with exact file names and verification criteria. Reviewable before execution.</div>
+        </div>
+      </div>
+
+      <div style="background:#0e0e20;border:1px solid #fdcb6e25;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:32px;height:32px;background:#fdcb6e20;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">&#x1F9EA;</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#fdcb6e;margin-bottom:3px;">Strict TDD</div>
+          <div style="font-size:11px;color:#6c6c80;line-height:1.5;"><span style="color:#e17055;">RED</span> → <span style="color:#00b894;">GREEN</span> → REFACTOR. <strong style="color:#e17055;">Code without a test is deleted.</strong> Commit only after green.</div>
+        </div>
+      </div>
+
+      <div style="background:#0e0e20;border:1px solid #00b89425;border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:32px;height:32px;background:#00b89420;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">&#x1F50D;</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#00b894;margin-bottom:3px;">Code Review Between Steps</div>
+          <div style="font-size:11px;color:#6c6c80;line-height:1.5;">Fresh agent reviews after each task. <strong style="color:#e17055;">Critical issues block progress</strong> to the next step.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- IMPL TRACK — SLIDE 17                      -->
+<!-- How Superpowers Works: the 7-step flow     -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="17" data-track="impl">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;">
+    <div class="slide-title anim" data-delay="0">How <span class="accent-purple">Superpowers</span> Works</div>
+    <span class="anim tag" data-delay="0" style="background:rgba(253,203,110,0.15);color:#fdcb6e;margin-top:4px;">Engineer Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">Linear preparation &rarr; task cycle &rarr; finish</div>
+
+  <div style="display:flex;gap:16px;flex:1;">
+
+    <!-- LEFT: Preparation (1x) + Finishing -->
+    <div class="anim" data-delay="2" style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+
+      <div style="font-size:10px;font-weight:700;color:#6c6c80;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Preparation (once)</div>
+
+      <div style="background:#0e0e20;border:1px solid #a29bfe35;border-radius:10px;padding:11px 13px;display:flex;gap:10px;align-items:flex-start;position:relative;">
+        <div style="width:26px;height:26px;border-radius:50%;background:#a29bfe;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">1</div>
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:700;color:#a29bfe;margin-bottom:3px;">Brainstorming</div>
+          <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Dialogue, questions, design doc.</div>
+        </div>
+        <div style="background:#a29bfe;color:#0a0a23;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;flex-shrink:0;">GATE</div>
+      </div>
+
+      <div style="text-align:center;color:#2a2a4a;font-size:14px;">&#x25BC;</div>
+
+      <div style="background:#0e0e20;border:1px solid #74b9ff30;border-radius:10px;padding:11px 13px;display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:26px;height:26px;border-radius:50%;background:#74b9ff;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">2</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#74b9ff;margin-bottom:3px;">Git Worktree</div>
+          <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Isolated branch. Main is protected.</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;color:#2a2a4a;font-size:14px;">&#x25BC;</div>
+
+      <div style="background:#0e0e20;border:1px solid #fdcb6e30;border-radius:10px;padding:11px 13px;display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:26px;height:26px;border-radius:50%;background:#fdcb6e;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">3</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#fdcb6e;margin-bottom:3px;">Planning</div>
+          <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Micro-tasks (2–5 min): files, code, verification.</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;color:#2a2a4a;font-size:14px;">&#x25BC;</div>
+
+      <div style="background:#0a1a0a;border:1px solid #00b89440;border-radius:10px;padding:11px 13px;display:flex;gap:10px;align-items:flex-start;margin-top:auto;">
+        <div style="width:26px;height:26px;border-radius:50%;background:#00b894;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">7</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#00b894;margin-bottom:3px;">Finishing</div>
+          <div style="font-size:11px;color:#6c6c80;line-height:1.4;">All tests pass &rarr; merge / PR.</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:#4a4a6a;text-align:center;">After all tasks</div>
+    </div>
+
+    <!-- RIGHT: Task cycle -->
+    <div class="anim" data-delay="3" style="flex:1;display:flex;flex-direction:column;gap:0;">
+
+      <div style="font-size:10px;font-weight:700;color:#6c6c80;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Cycle — repeats for each task in the plan</div>
+
+      <div style="flex:1;border:1px solid #fdcb6e30;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;background:#0a0a1a;">
+
+        <div style="background:#0e0e20;border:1px solid #00b89435;border-radius:9px;padding:11px 14px;display:flex;gap:10px;align-items:flex-start;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#00b894;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">4</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:#00b894;margin-bottom:3px;">Implement</div>
+            <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Subagent picks up the task from the plan. Fresh context, isolated worktree.</div>
+          </div>
+          <div style="background:#00b894;color:#0a0a23;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0;">subagent</div>
+        </div>
+
+        <div style="text-align:center;color:#2a2a3a;font-size:14px;">&#x25BC;</div>
+
+        <div style="background:#0e0e20;border:1px solid #e1705535;border-radius:9px;padding:11px 14px;display:flex;gap:10px;align-items:flex-start;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#e17055;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">5</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:#e17055;margin-bottom:3px;">TDD</div>
+            <div style="font-size:11px;color:#6c6c80;line-height:1.4;"><span style="color:#e17055;">RED</span> &rarr; <span style="color:#00b894;">GREEN</span> &rarr; REFACTOR. Test first. Commit after green.</div>
+          </div>
+          <div style="background:#e17055;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0;">strict</div>
+        </div>
+
+        <div style="text-align:center;color:#2a2a3a;font-size:14px;">&#x25BC;</div>
+
+        <div style="background:#0e0e20;border:1px solid #fd79a835;border-radius:9px;padding:11px 14px;display:flex;gap:10px;align-items:flex-start;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#fd79a8;color:#0a0a23;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">6</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:#fd79a8;margin-bottom:3px;">Code Review</div>
+            <div style="font-size:11px;color:#6c6c80;line-height:1.4;">Code review. Critical issues block. OK &rarr; next task.</div>
+          </div>
+          <div style="background:#fd79a8;color:#0a0a23;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0;">blocking</div>
+        </div>
+
+        <!-- Loop arrow + condition -->
+        <div style="background:#12122a;border:1px dashed #fdcb6e40;border-radius:8px;padding:9px 14px;display:flex;align-items:center;gap:10px;">
+          <span style="color:#fdcb6e;font-size:16px;">&#x21A9;</span>
+          <div style="font-size:11px;color:#6c6c80;line-height:1.5;">
+            <strong style="color:#fdcb6e;">More tasks in plan?</strong> &rarr; back to step 4. &nbsp;
+            <strong style="color:#00b894;">All done?</strong> &rarr; step 7 (Finishing)
+          </div>
+        </div>
+
+        <!-- Task tracker visual -->
+        <div style="display:flex;align-items:center;gap:8px;padding-top:2px;">
+          <div style="font-size:10px;color:#4a4a6a;">Tasks:</div>
+          <div style="display:flex;gap:4px;">
+            <div style="width:20px;height:20px;border-radius:4px;background:#00b894;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#0a0a23;">&#x2714;</div>
+            <div style="width:20px;height:20px;border-radius:4px;background:#00b894;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#0a0a23;">&#x2714;</div>
+            <div style="width:20px;height:20px;border-radius:4px;background:#fdcb6e;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#0a0a23;">3</div>
+            <div style="width:20px;height:20px;border-radius:4px;background:#1a1a2e;border:1px solid #2a2a4a;display:flex;align-items:center;justify-content:center;font-size:9px;color:#4a4a6a;">4</div>
+            <div style="width:20px;height:20px;border-radius:4px;background:#1a1a2e;border:1px solid #2a2a4a;display:flex;align-items:center;justify-content:center;font-size:9px;color:#4a4a6a;">5</div>
+            <div style="width:20px;height:20px;border-radius:4px;background:#1a1a2e;border:1px solid #2a2a4a;display:flex;align-items:center;justify-content:center;font-size:9px;color:#4a4a6a;">6</div>
+            <div style="width:20px;height:20px;border-radius:4px;background:#1a1a2e;border:1px solid #2a2a4a;display:flex;align-items:center;justify-content:center;font-size:9px;color:#4a4a6a;">7</div>
+          </div>
+          <div style="font-size:10px;color:#4a4a6a;">2 done &middot; 1 in progress &middot; 4 remaining</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- IMPL TRACK — SLIDE 18                      -->
+<!-- Review + Validate + Failure Modes          -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="18" data-track="impl">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0"><span class="accent-red">Failure Modes</span> &amp; What Not To Do</div>
+    <span class="anim tag" data-delay="0" style="background:rgba(253,203,110,0.15);color:#fdcb6e;margin-top:4px;">Engineer Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">Most of these are avoidable &mdash; learn them before you start</div>
+
+  <div class="two-col" style="flex:1;align-items:start;gap:22px;">
+    <div class="anim" data-delay="2">
+      <div class="section-label accent-red">What Not To Do</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:#0e0e20;border-radius:7px;border-left:3px solid #e17055;"><span style="color:#e17055;flex-shrink:0;font-size:13px;">&#x274C;</span><div style="font-size:12px;color:#a0a0b8;line-height:1.4;"><strong style="color:#e0e0f0;">Start coding before the brief is ready</strong></div></div>
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:#0e0e20;border-radius:7px;border-left:3px solid #e17055;"><span style="color:#e17055;flex-shrink:0;font-size:13px;">&#x274C;</span><div style="font-size:12px;color:#a0a0b8;line-height:1.4;"><strong style="color:#e0e0f0;">Assume requirements that are not written down</strong></div></div>
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:#0e0e20;border-radius:7px;border-left:3px solid #e17055;"><span style="color:#e17055;flex-shrink:0;font-size:13px;">&#x274C;</span><div style="font-size:12px;color:#a0a0b8;line-height:1.4;"><strong style="color:#e0e0f0;">Spend most time on UI</strong> before core logic works</div></div>
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:#0e0e20;border-radius:7px;border-left:3px solid #e17055;"><span style="color:#e17055;flex-shrink:0;font-size:13px;">&#x274C;</span><div style="font-size:12px;color:#a0a0b8;line-height:1.4;"><strong style="color:#e0e0f0;">Accept AI-generated code without reading it</strong></div></div>
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:#0e0e20;border-radius:7px;border-left:3px solid #e17055;"><span style="color:#e17055;flex-shrink:0;font-size:13px;">&#x274C;</span><div style="font-size:12px;color:#a0a0b8;line-height:1.4;"><strong style="color:#e0e0f0;">Change scope without telling the manager</strong></div></div>
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:#0e0e20;border-radius:7px;border-left:3px solid #e17055;"><span style="color:#e17055;flex-shrink:0;font-size:13px;">&#x274C;</span><div style="font-size:12px;color:#a0a0b8;line-height:1.4;"><strong style="color:#e0e0f0;">Skip end-to-end test on real data</strong> in the target environment</div></div>
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:#0e0e20;border-radius:7px;border-left:3px solid #e17055;"><span style="color:#e17055;flex-shrink:0;font-size:13px;">&#x274C;</span><div style="font-size:12px;color:#a0a0b8;line-height:1.4;"><strong style="color:#e0e0f0;">Imply the prototype is production-ready</strong></div></div>
+      </div>
+    </div>
+
+    <div class="anim" data-delay="3">
+      <div class="section-label accent-yellow">Common Failure Modes</div>
+      <table class="rtable">
+        <thead><tr><th>What happened</th><th>Why</th><th>Prevention</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Prototype doesn&rsquo;t match expectation</td>
+            <td>Requirements not confirmed before build</td>
+            <td>Confirm demo flow with manager first</td>
+          </tr>
+          <tr>
+            <td>Data blocked on demo day</td>
+            <td>Access assumed, not secured</td>
+            <td>Make data access step 1 &mdash; treat as blocker</td>
+          </tr>
+          <tr>
+            <td>AI code wrong assumptions</td>
+            <td>Vague brief given to AI</td>
+            <td>Write specific brief including data structure</td>
+          </tr>
+          <tr>
+            <td>Demo crashes in live environment</td>
+            <td>Only tested locally</td>
+            <td>Run end-to-end test in target env before demo</td>
+          </tr>
+          <tr>
+            <td>Scope keeps expanding</td>
+            <td>No boundary defined</td>
+            <td>Define what NOT to build; scope = explicit sign-off</td>
+          </tr>
+          <tr>
+            <td>Impressive build proves nothing</td>
+            <td>Business question never defined</td>
+            <td>Confirm the question before writing code</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:12px;" class="callout" style="background:#12122a;border:2px solid #74b9ff30;">
+        <div class="callout-shimmer"></div>
+        <div style="position:relative;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <strong style="color:#74b9ff;">End of Engineer Guide.</strong> If you need to revisit the manager side or return to the introduction, use the &ldquo;Change guide&rdquo; button at the top left.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- IMPL TRACK — SLIDE 19                      -->
+<!-- Pre-Demo Validation                        -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="slide" data-slide="19" data-track="impl">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <div class="slide-title anim" data-delay="0">Review Manually &amp; <span class="accent-yellow">Validate</span> Before Demoing</div>
+    <span class="anim tag" data-delay="0" style="background:rgba(253,203,110,0.15);color:#fdcb6e;margin-top:4px;">Engineer Guide</span>
+  </div>
+  <div class="slide-subtitle anim" data-delay="1">What to check before declaring the prototype ready</div>
+
+  <div class="two-col" style="flex:1;align-items:start;gap:22px;">
+    <div class="anim" data-delay="2">
+      <div class="section-label accent-yellow">Manual Review</div>
+      <table class="rtable">
+        <thead><tr><th>Area</th><th>What to Check</th></tr></thead>
+        <tbody>
+          <tr><td>Credentials</td><td>No API keys, passwords, or tokens in source code &mdash; env vars or key vault only</td></tr>
+          <tr><td>Data handling</td><td>No sensitive data being logged unnecessarily or written to unexpected locations</td></tr>
+          <tr><td>Demo flow</td><td>Walk through it manually, step by step, in the exact environment the demo will use</td></tr>
+          <tr><td>Error messages</td><td>Should not be confusing or alarming to a business audience</td></tr>
+          <tr><td>Restart behavior</td><td>Can you restart the prototype cleanly if something crashes mid-demo?</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="anim" data-delay="3">
+      <div class="section-label accent-green">Pre-Demo Checklist</div>
+      <div style="background:#0e0e20;border:1px solid #2a2a4a;border-radius:12px;padding:14px;">
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 8px;border-radius:6px;background:#12122a;">
+            <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fdcb6e;flex-shrink:0;">&#x25A1;</span>
+            Prototype runs end-to-end without errors on the agreed data
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 8px;border-radius:6px;background:#12122a;">
+            <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fdcb6e;flex-shrink:0;">&#x25A1;</span>
+            Deployed or running in the <strong style="color:#e0e0f0;">agreed environment</strong> (not only local)
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 8px;border-radius:6px;background:#12122a;">
+            <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fdcb6e;flex-shrink:0;">&#x25A1;</span>
+            Uses the <strong style="color:#e0e0f0;">actual agreed data source</strong> (not test data unless agreed)
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 8px;border-radius:6px;background:#12122a;">
+            <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fdcb6e;flex-shrink:0;">&#x25A1;</span>
+            Output is readable and makes sense to a non-technical audience
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 8px;border-radius:6px;background:#12122a;">
+            <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fdcb6e;flex-shrink:0;">&#x25A1;</span>
+            Tested in the same browser, device, or context the presenter will use
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 8px;border-radius:6px;background:#12122a;">
+            <span style="width:16px;height:16px;border:1px solid #fdcb6e;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fdcb6e;flex-shrink:0;">&#x25A1;</span>
+            You know how to <strong style="color:#e0e0f0;">restart it cleanly</strong> if something goes wrong
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:#a0a0b8;padding:6px 8px;border-radius:6px;background:#12122a;">
+            <span style="width:16px;height:16px;border:1px solid #00b894;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#00b894;flex-shrink:0;">&#x25A1;</span>
+            <strong style="color:#00b894;">Manager has seen it run</strong> and confirmed it matches the agreed demo scenario
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;" class="callout" style="background:#12122a;border:2px solid #00b89430;">
+        <div class="callout-shimmer"></div>
+        <div style="position:relative;font-size:12px;color:#a0a0b8;line-height:1.5;">
+          <strong style="color:#00b894;">You are done when all boxes are checked.</strong> Not before. See the next slide for common failure modes and what not to do.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ NAVIGATION ═══════════════════════ -->
+<div class="nav-bar">
+  <button class="nav-arrow" onclick="prevSlide()">&larr;</button>
+  <div id="navDots" style="display:flex;gap:7px;align-items:center;"></div>
+  <div class="slide-num" id="slideNum">1 / 4</div>
+  <button class="nav-arrow" onclick="nextSlide()">&rarr;</button>
+</div>
+<div class="key-hint">&#8592; &#8594; arrows &middot; click track cards to choose path</div>
+
+<script>
+let current = 1;
+let currentTrack = null; // 'manager' | 'impl' | null
+let transitioning = false;
+
+const INTRO = [1, 2, 3, 4];
+const MANAGER_TRACK = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+const IMPL_TRACK = [1, 2, 3, 4, 12, 13, 14, 15, 16, 17, 18, 19];
+
+function getTrackSlides() {
+  if (currentTrack === 'manager') return MANAGER_TRACK;
+  if (currentTrack === 'impl') return IMPL_TRACK;
+  return INTRO;
+}
+
+function buildNavDots() {
+  const slides = getTrackSlides();
+  const container = document.getElementById('navDots');
+  container.innerHTML = '';
+  slides.forEach(n => {
+    const btn = document.createElement('button');
+    let cls = 'nav-dot';
+    if (n === current) cls += ' active';
+    if (n <= 4) { if (n === current) cls += ' fork-dot'; }
+    else if (currentTrack === 'manager') cls += ' mgr';
+    else if (currentTrack === 'impl') cls += ' imp';
+    btn.className = cls;
+    btn.onclick = () => goSlide(n);
+    container.appendChild(btn);
+  });
+  const pos = getTrackSlides().indexOf(current) + 1;
+  const total = getTrackSlides().length;
+  document.getElementById('slideNum').textContent = `${pos} / ${total}`;
+  document.getElementById('progressBar').style.width = (pos / total * 100) + '%';
+  document.getElementById('slideCorner').textContent =
+    String(pos).padStart(2,'0') + ' / ' + String(total).padStart(2,'0');
+  // Show/hide back button
+  document.getElementById('backForkBtn').style.display =
+    (current > 4) ? 'block' : 'none';
+}
+
+function animateSlide(n) {
+  const slide = document.querySelector(`[data-slide="${n}"]`);
+  if (!slide) return;
+  slide.querySelectorAll('.anim').forEach(el => el.classList.remove('visible'));
+  slide.querySelectorAll('.anim').forEach(el => {
+    const d = parseInt(el.dataset.delay || 0);
+    setTimeout(() => el.classList.add('visible'), 120 + d * 100);
+  });
+}
+
+function goSlide(n) {
+  if (n < 1 || n > 19 || n === current || transitioning) return;
+  transitioning = true;
+  const oldSlide = document.querySelector(`[data-slide="${current}"]`);
+  const newSlide = document.querySelector(`[data-slide="${n}"]`);
+  if (!newSlide) { transitioning = false; return; }
+  newSlide.querySelectorAll('.anim').forEach(el => el.classList.remove('visible'));
+
+  const exitClass = n > current ? 'exit-left' : 'exit-right';
+  oldSlide.classList.remove('active');
+  oldSlide.classList.add(exitClass);
+
+  setTimeout(() => {
+    oldSlide.classList.remove(exitClass);
+    oldSlide.style.display = 'none';
+    oldSlide.style.opacity = '0';
+    newSlide.style.display = '';
+    newSlide.style.opacity = '';
+    newSlide.classList.add('active');
+    current = n;
+    buildNavDots();
+    animateSlide(n);
+    setTimeout(() => { transitioning = false; }, 100);
+  }, 300);
+}
+
+function nextSlide() {
+  const slides = getTrackSlides();
+  const idx = slides.indexOf(current);
+  if (idx < slides.length - 1) goSlide(slides[idx + 1]);
+}
+
+function prevSlide() {
+  const slides = getTrackSlides();
+  const idx = slides.indexOf(current);
+  if (idx > 0) goSlide(slides[idx - 1]);
+}
+
+function chooseTrack(track) {
+  currentTrack = track;
+  const target = track === 'manager' ? 5 : 12;
+  goSlide(target);
+}
+
+function backToFork() {
+  goSlide(4);
+}
+
+/* ── Particles ── */
+(function(){
+  const c = document.getElementById('particles');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.bottom = '-4px';
+    p.style.animationDuration = (8 + Math.random() * 12) + 's';
+    p.style.animationDelay = (Math.random() * 15) + 's';
+    p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+    c.appendChild(p);
+  }
+})();
+
+/* ── Value card hover panel ── */
+function showValPane(id) {
+  clearTimeout(window._valHide);
+  document.querySelectorAll('.val-pane').forEach(p => p.classList.remove('val-active'));
+  const pane = document.getElementById('vp-' + id);
+  if (pane) pane.classList.add('val-active');
+  document.getElementById('valPanel').classList.add('val-open');
+}
+function hideValPane() {
+  window._valHide = setTimeout(() => {
+    document.getElementById('valPanel').classList.remove('val-open');
+  }, 140);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+  if (e.key === 'Escape') { if (current > 4) backToFork(); }
+});
+
+buildNavDots();
+animateSlide(1);
+</script>
+</body>
+</html>
